@@ -1,0 +1,20 @@
+[
+  {
+    "repairId": "REP-001",
+    "description": "LaTeX normalization and double-escaping cleanup",
+    "action": "Fixed \\\\text and \\text{\\text{...}} nested commands across question statements and solution steps.",
+    "status": "RESOLVED"
+  },
+  {
+    "repairId": "REP-002",
+    "description": "Metadata token sanitization from MathText/MathFormula",
+    "action": "Implemented isValidDisplayFormula() and sanitized formula tags so archetype IDs (e.g. SPHERE_AREA_A) never render as math.",
+    "status": "RESOLVED"
+  },
+  {
+    "repairId": "REP-003",
+    "description": "Enforce strict 4-option MCQ only across Practice, Exam, and Assignment",
+    "action": "All non-MCQ variants and synthetic fallbacks blocked from eligible assessment streams.",
+    "status": "RESOLVED"
+  }
+]

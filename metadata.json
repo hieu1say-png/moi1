@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix Remix Remix Remix Remix Remix PHÒNG THÍ NGHIỆM HÌNH TRỤ - NÓN - CẦU TOÁN 9",
+  "description": "Nền tảng học tập trực quan Hình học Không gian Lớp 9: Hình Trụ – Hình Nón – Hình Cầu với mô hình khám phá, lý thuyết và bài tập thực tế.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "auditTimestamp": "2026-09-02T20:45:00.000Z",
+  "totalRecordsAudited": 9,
+  "fakeVideosFound": 0,
+  "placeholderVideosFound": 0,
+  "demoUrlsFound": 0,
+  "removedRecords": [],
+  "status": "CLEAN",
+  "message": "Toàn bộ video trong cơ sở dữ liệu đều trỏ tới tệp nhị phân MP4 thực tế trên đĩa cứng máy chủ. Không phát hiện placeholder hay URL giả."
+}
