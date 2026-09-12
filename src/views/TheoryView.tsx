@@ -1373,13 +1373,13 @@ export const TheoryView: React.FC = () => {
               {isUploading && (
                 <div className="space-y-1.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
                   <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
-                    <span>Đang tải lên máy chủ & đồng bộ database...</span>
+                    <span>Đang tải video trực tiếp lên kho lưu trữ & gán bài học...</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <div className="w-full h-2 bg-emerald-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-600 transition-all duration-200 rounded-full"
-                      style={{ width: `${uploadProgress}%` }}
+                      style={{ width: `${Math.max(uploadProgress, 5)}%` }}
                     />
                   </div>
                 </div>
@@ -1406,7 +1406,7 @@ export const TheoryView: React.FC = () => {
                   leftIcon={<Upload className="w-3.5 h-3.5" />}
                   className="font-bold"
                 >
-                  {isUploading ? 'Đang xử lý...' : 'Bắt đầu tải lên & Gán'}
+                  {isUploading ? 'Đang tải lên...' : 'Tải lên & Gán bài học'}
                 </Button>
               </div>
             </form>

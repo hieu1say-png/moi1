@@ -23,10 +23,12 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  ShieldCheck
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { TeacherQuestionBankAuditModal } from './TeacherQuestionBankAuditModal';
+import { TeacherQuestionPreviewModal, QuestionPreviewData } from './TeacherQuestionPreviewModal';
 
 interface TeacherQuestionBankTabProps {
   questions: Exercise[];
@@ -43,6 +45,9 @@ export const TeacherQuestionBankTab: React.FC<TeacherQuestionBankTabProps> = ({
   const [selectedType, setSelectedType] = useState<ExerciseType | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
+
+  // Preview as Student Modal State
+  const [previewQuestion, setPreviewQuestion] = useState<QuestionPreviewData | null>(null);
 
   // Audit Modal State
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -296,13 +301,25 @@ export const TeacherQuestionBankTab: React.FC<TeacherQuestionBankTabProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => setExpandedQuestionId(isExpanded ? null : q.id)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer self-end sm:self-center"
-                  >
-                    <span>{isExpanded ? 'Thu gọn' : 'Xem đáp án & Lời giải'}</span>
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewQuestion(q as any)}
+                      className="px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Xem trước câu hỏi đúng như học sinh nhìn thấy"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-orange-600" />
+                      <span>Xem như học sinh</span>
+                    </button>
+
+                    <button
+                      onClick={() => setExpandedQuestionId(isExpanded ? null : q.id)}
+                      className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                    >
+                      <span>{isExpanded ? 'Thu gọn' : 'Xem đáp án'}</span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Question Body */}
@@ -443,6 +460,12 @@ export const TeacherQuestionBankTab: React.FC<TeacherQuestionBankTabProps> = ({
                   onChange={(e) => setNewQuestionText(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 ></textarea>
+                {newQuestionText.trim() && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Xem trước đề bài (Times New Roman):</div>
+                    <div className="gl-question-text"><MathText text={newQuestionText} /></div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -515,6 +538,12 @@ export const TeacherQuestionBankTab: React.FC<TeacherQuestionBankTabProps> = ({
                   onChange={(e) => setNewExplanation(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 ></textarea>
+                {newExplanation.trim() && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950">
+                    <div className="text-[10px] uppercase font-bold text-emerald-600 mb-1">Xem trước lời giải 4 bước (Times New Roman):</div>
+                    <div className="gl-solution-text"><MathText text={newExplanation} /></div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -546,6 +575,13 @@ export const TeacherQuestionBankTab: React.FC<TeacherQuestionBankTabProps> = ({
       <TeacherQuestionBankAuditModal
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
+      />
+
+      {/* Preview As Student Modal */}
+      <TeacherQuestionPreviewModal
+        isOpen={!!previewQuestion}
+        question={previewQuestion}
+        onClose={() => setPreviewQuestion(null)}
       />
     </div>
   );

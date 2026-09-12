@@ -20,6 +20,7 @@ export type RouteId =
   | '/real-world'
   | '/achievements'
   | '/ai'
+  | '/game'
   | '/settings'
   | '/teacher'
   | '/teacher-dashboard'

@@ -1195,6 +1195,13 @@ export const videoUploadMiddleware = multer({
   }
 });
 
+export const chunkUploadMiddleware = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max per chunk (chunks are 2MB)
+  }
+});
+
 // Thumbnail Storage Configuration
 const thumbnailDiskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {

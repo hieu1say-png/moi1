@@ -356,18 +356,32 @@ export const LearningJourneyModal: React.FC<LearningJourneyModalProps> = ({
                 </div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#3A302B]">
                   {shapeType === 'cylinder'
-                    ? 'Video bài học Hình trụ (trụ.mp4)'
+                    ? 'Video bài học Hình trụ'
                     : shapeType === 'cone'
-                    ? 'Video bài học Hình nón (nón.mp4)'
-                    : 'Video bài học Hình cầu (cầu.mp4)'}
+                    ? 'Video bài học Hình nón'
+                    : 'Video bài học Hình cầu'}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#766A61]">
                   Theo dõi bài giảng phân tích chi tiết định nghĩa, công thức diện tích và thể tích.
                 </p>
               </div>
 
-              {/* Lesson Video Player */}
-              <LessonVideo shape={shapeType} />
+              {/* Lesson Video Player or Zero-Fake Clean State */}
+              {videoLesson?.src ? (
+                <LessonVideo shape={shapeType} source={videoLesson.src} />
+              ) : (
+                <div className="bg-[#FAF7F2] border border-[#E5DCCF] rounded-2xl p-6 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                    <Video className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-serif text-sm font-bold text-[#3A302B]">
+                    Video bài học chưa có sẵn trên hệ thống lưu trữ
+                  </h4>
+                  <p className="text-xs text-[#766A61] max-w-md mx-auto">
+                    Chính sách kiểm duyệt: Video bài giảng chuẩn cho chủ đề này đang chờ Giáo viên tải lên tệp thực tế. Em hãy chuyển sang bước tiếp theo để khám phá mô hình không gian 3D tương tác.
+                  </p>
+                </div>
+              )}
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t border-[#E5DCCF]">

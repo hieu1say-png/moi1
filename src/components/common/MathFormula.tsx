@@ -117,6 +117,87 @@ export function validateLatexFormula(formula: string): {
   }
 }
 
+export interface MathValidationResult {
+  valid: boolean;
+  normalized: string;
+  status: 'APPROVED' | 'NEEDS_REVIEW';
+  error?: string;
+  errors?: string[];
+}
+
+/**
+ * Validates mixed text containing LaTeX formulas, checking delimiters,
+ * brace matching, fraction syntax, and KaTeX compatibility.
+ * Returns status APPROVED or NEEDS_REVIEW.
+ */
+export function validateMathText(input: string): MathValidationResult {
+  if (!input || typeof input !== 'string') {
+    return { valid: true, normalized: '', status: 'APPROVED' };
+  }
+
+  const errors: string[] = [];
+  const normalized = normalizeMathText(input);
+
+  // 1. Check matching delimiters ($...$)
+  const unescapedDollar = normalized.replace(/\\\$/g, '');
+  const dollarCount = (unescapedDollar.match(/\$/g) || []).length;
+  if (dollarCount % 2 !== 0) {
+    errors.push('Unbalanced math delimiter ($ count is odd)');
+  }
+
+  // 2. Extract math chunks and validate braces + KaTeX parsing
+  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\))/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(normalized)) !== null) {
+    const rawChunk = match[0];
+    let mathInner = rawChunk;
+    if (mathInner.startsWith('$$') && mathInner.endsWith('$$')) {
+      mathInner = mathInner.slice(2, -2);
+    } else if (mathInner.startsWith('$') && mathInner.endsWith('$')) {
+      mathInner = mathInner.slice(1, -1);
+    } else if (mathInner.startsWith('\\[') && mathInner.endsWith('\\]')) {
+      mathInner = mathInner.slice(2, -2);
+    } else if (mathInner.startsWith('\\(') && mathInner.endsWith('\\)')) {
+      mathInner = mathInner.slice(2, -2);
+    }
+
+    // Check balanced curly braces
+    const openBraces = (mathInner.match(/\{/g) || []).length;
+    const closeBraces = (mathInner.match(/\}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      errors.push(`Unbalanced curly braces in formula: "${mathInner}"`);
+    }
+
+    // Test KaTeX parsing
+    try {
+      katex.renderToString(mathInner.trim(), {
+        displayMode: false,
+        throwOnError: true,
+        strict: false,
+        trust: true
+      });
+    } catch (err: any) {
+      errors.push(`KaTeX syntax error in "${mathInner}": ${err?.message || 'Invalid syntax'}`);
+    }
+  }
+
+  // 3. Check for unclosed / malformed \frac or \sqrt outside delimiters
+  const plainTextWithoutMath = normalized.replace(regex, '');
+  if (/\\frac(?!\s*\{)/.test(plainTextWithoutMath)) {
+    errors.push('Unenclosed or malformed \\frac outside math delimiters');
+  }
+
+  const isValid = errors.length === 0;
+  return {
+    valid: isValid,
+    normalized,
+    status: isValid ? 'APPROVED' : 'NEEDS_REVIEW',
+    error: errors.length > 0 ? errors.join('; ') : undefined,
+    errors: errors.length > 0 ? errors : undefined
+  };
+}
+
 /**
  * Checks if a string is a valid mathematical formula rather than internal metadata or archetype IDs.
  */

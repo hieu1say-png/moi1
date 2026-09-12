@@ -454,7 +454,79 @@ export class TheoryVideoService {
   }
 
   /**
-   * Upload video file directly to Vercel Blob object store (with multipart server upload fallback)
+   * Upload video file slice-by-slice (chunks <= 2MB)
+   * Prevents HTTP 413 Payload Too Large when Vercel Blob is not configured
+   */
+  public static async uploadChunked(
+    file: File,
+    onProgress?: (percent: number) => void
+  ): Promise<{ success: boolean; videoUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; error?: string }> {
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk (safely below 4.5MB Vercel function limit)
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const uploadId = `chunk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const authHeaders = this.getAuthHeaders(false, 'teacher');
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunkBlob = file.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('chunk', chunkBlob, file.name);
+      formData.append('uploadId', uploadId);
+      formData.append('chunkIndex', String(chunkIndex));
+      formData.append('totalChunks', String(totalChunks));
+      formData.append('fileName', file.name);
+      formData.append('fileSize', String(file.size));
+      formData.append('mimeType', file.type || 'video/mp4');
+
+      try {
+        const response = await fetch('/api/theory-videos/chunk-upload', {
+          method: 'POST',
+          headers: authHeaders,
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => ({}));
+          return {
+            success: false,
+            error: errJson.error || errJson.message || `Lỗi tải lên mảnh ${chunkIndex + 1}/${totalChunks} (HTTP ${response.status})`
+          };
+        }
+
+        const resData = await response.json();
+
+        if (onProgress) {
+          const percent = Math.min(Math.round(((chunkIndex + 1) / totalChunks) * 100), 99);
+          onProgress(percent);
+        }
+
+        if (chunkIndex === totalChunks - 1 && resData.completed) {
+          if (onProgress) onProgress(100);
+          return {
+            success: true,
+            videoUrl: resData.videoUrl,
+            fileName: resData.fileName || file.name,
+            fileSize: resData.fileSize || file.size,
+            mimeType: resData.mimeType || file.type
+          };
+        }
+      } catch (networkErr: any) {
+        return {
+          success: false,
+          error: networkErr.message || 'Lỗi mạng khi tải lên phân mảnh video.'
+        };
+      }
+    }
+
+    return { success: false, error: 'Không thể hoàn tất ghép nối các phân mảnh video.' };
+  }
+
+  /**
+   * Upload video file directly to Vercel Blob object store
+   * Browser uploads straight to Vercel Blob — file NEVER passes through Vercel Functions
+   * If Blob token is not configured, automatically uses chunked upload (<=2MB chunks) to prevent HTTP 413
    */
   public static async uploadVideoFile(
     file: File,
@@ -473,6 +545,7 @@ export class TheoryVideoService {
         access: 'public',
         handleUploadUrl: '/api/theory-videos/blob-upload',
         headers: authHeaders,
+        multipart: true, // Crucial for files > 4.5MB
         onUploadProgress: (progress) => {
           if (onProgress && progress.total) {
             const percent = Math.round((progress.loaded / progress.total) * 100);
@@ -492,62 +565,35 @@ export class TheoryVideoService {
         };
       }
     } catch (blobErr: any) {
-      console.warn('[UPLOAD] Direct Vercel Blob upload skipped, falling back to server multipart upload:', blobErr?.message || blobErr);
+      console.warn('[UPLOAD] Direct Vercel Blob upload unavailable, falling back to safe chunked upload:', blobErr?.message || blobErr);
     }
 
-    // 2. Fallback: Standard XMLHttpRequest multipart upload (for local dev / non-blob setups)
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append('video', file);
+    // 2. Safe Chunked Fallback: Slices file into 2MB chunks so no request ever exceeds 4.5MB
+    return this.uploadChunked(file, onProgress);
+  }
 
-      xhr.open('POST', '/api/theory-videos/upload', true);
-      // Explicitly attach teacher authorization headers for upload
+  /**
+   * Delete orphaned blob from Vercel Blob storage if metadata save fails or upload is canceled
+   */
+  public static async cleanupBlob(url: string): Promise<boolean> {
+    if (!url || (!url.includes('vercel-storage.com') && !url.includes('public.blob.vercel-storage.com'))) {
+      return false;
+    }
+    try {
       const authHeaders = this.getAuthHeaders(false, 'teacher');
-      Object.entries(authHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-
-      if (xhr.upload && onProgress) {
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            onProgress(percent);
-          }
-        };
-      }
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const res = JSON.parse(xhr.responseText);
-            if (res.success && res.videoUrl) {
-              resolve({
-                success: true,
-                videoUrl: res.videoUrl,
-                fileName: res.fileName || file.name,
-                fileSize: res.fileSize || file.size,
-                mimeType: res.mimeType || file.type
-              });
-              return;
-            }
-          } catch (e) {
-            resolve({ success: false, error: 'Không phân tích được phản hồi từ máy chủ.' });
-            return;
-          }
-        }
-        try {
-          const errRes = JSON.parse(xhr.responseText);
-          resolve({ success: false, error: errRes.message || errRes.error || 'Lỗi tải video lên máy chủ.' });
-        } catch {
-          resolve({ success: false, error: `Máy chủ phản hồi mã lỗi ${xhr.status}.` });
-        }
-      };
-
-      xhr.onerror = () => {
-        resolve({ success: false, error: 'Lỗi kết nối mạng khi tải tệp video.' });
-      };
-
-      xhr.send(formData);
-    });
+      const res = await fetch('/api/theory-videos/blob-cleanup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({ url })
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn('[STORAGE] Cleanup blob error:', err);
+      return false;
+    }
   }
 
   /**
@@ -1062,6 +1108,9 @@ export class TheoryVideoService {
 
   /**
    * Upload video file and assign directly to a shape (Teacher action)
+   * Step 1: Client uploads file directly (Vercel Blob client or chunked fallback)
+   * Step 2: Client persists metadata via lightweight JSON API (< 2KB)
+   * Guaranteed: 50MB file NEVER passes through Vercel Functions in a single request (zero 413)
    */
   public static async uploadAndAssignVideo(
     shape: 'cylinder' | 'cone' | 'sphere',
@@ -1069,69 +1118,68 @@ export class TheoryVideoService {
     title?: string,
     onProgress?: (percent: number) => void
   ): Promise<{ success: boolean; video?: TheoryVideo; assignments?: Record<string, string | null>; error?: string }> {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append('video', file);
-      formData.append('shape', shape);
-      if (title) formData.append('title', title);
+    // 1. Upload video directly (Vercel Blob direct client upload or chunked fallback)
+    const uploadRes = await this.uploadVideoFile(file, onProgress);
+    if (!uploadRes.success || !uploadRes.videoUrl) {
+      return { success: false, error: uploadRes.error || 'Tải video lên thất bại.' };
+    }
 
-      xhr.open('POST', '/api/theory-videos/upload-and-assign', true);
+    // 2. Atomically persist metadata and assign to shape (lightweight JSON payload < 2KB)
+    try {
       const authHeaders = this.getAuthHeaders(false, 'teacher');
-      Object.entries(authHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      const shapeNameVn = shape === 'cylinder' ? 'Hình Trụ' : shape === 'cone' ? 'Hình Nón' : 'Hình Cầu';
 
-      if (xhr.upload && onProgress) {
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            onProgress(percent);
-          }
-        };
+      const res = await fetch('/api/theory-videos/create-and-assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify({
+          shape,
+          videoUrl: uploadRes.videoUrl,
+          title: title || `Video bài học ${shapeNameVn}`,
+          fileName: uploadRes.fileName || file.name,
+          fileSize: uploadRes.fileSize || file.size,
+          mimeType: uploadRes.mimeType || file.type
+        })
+      });
+
+      if (!res.ok) {
+        // Rollback / clean up orphaned blob if metadata save failed
+        if (uploadRes.videoUrl.includes('vercel-storage.com')) {
+          this.cleanupBlob(uploadRes.videoUrl).catch(() => {});
+        }
+        const errData = await res.json().catch(() => ({}));
+        return { success: false, error: errData.error || errData.message || `Lỗi máy chủ (${res.status}) khi gán video.` };
       }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const res = JSON.parse(xhr.responseText);
-            if (res.success && res.video) {
-              if (res.assignments) {
-                localStorage.setItem('GEOMETRY_LAB_SHAPE_ASSIGNMENTS', JSON.stringify(res.assignments));
-              }
-              // Update local memory cache and notify subscribers
-              const list = this.getVideos();
-              const updatedList = [res.video, ...list.filter((v) => v.id !== res.video.id)];
-              this.memoryCache = updatedList;
-              this.saveToLocalStorage(updatedList);
-              this.notifyListeners(updatedList);
-
-              window.dispatchEvent(
-                new CustomEvent('geometry_lab_video_assigned', {
-                  detail: { shape, videoId: res.video.id, assignments: res.assignments }
-                })
-              );
-
-              resolve({ success: true, video: res.video, assignments: res.assignments });
-              return;
-            }
-          } catch {
-            resolve({ success: false, error: 'Không thể phân tích phản hồi máy chủ' });
-            return;
-          }
+      const data = await res.json();
+      if (data.success && data.video) {
+        if (data.assignments) {
+          localStorage.setItem('GEOMETRY_LAB_SHAPE_ASSIGNMENTS', JSON.stringify(data.assignments));
         }
-        try {
-          const errRes = JSON.parse(xhr.responseText);
-          resolve({ success: false, error: errRes.message || errRes.error || 'Lỗi tải video lên máy chủ' });
-        } catch {
-          resolve({ success: false, error: `Máy chủ phản hồi mã ${xhr.status}` });
-        }
-      };
+        const list = this.getVideos();
+        const updatedList = [data.video, ...list.filter((v) => v.id !== data.video.id)];
+        this.memoryCache = updatedList;
+        this.saveToLocalStorage(updatedList);
+        this.notifyListeners(updatedList);
 
-      xhr.onerror = () => {
-        resolve({ success: false, error: 'Lỗi kết nối khi tải video lên máy chủ' });
-      };
+        window.dispatchEvent(
+          new CustomEvent('geometry_lab_video_assigned', {
+            detail: { shape, videoId: data.video.id, assignments: data.assignments }
+          })
+        );
+        return { success: true, video: data.video, assignments: data.assignments };
+      }
 
-      xhr.send(formData);
-    });
+      return { success: false, error: 'Phản hồi không hợp lệ từ máy chủ.' };
+    } catch (err: any) {
+      if (uploadRes.videoUrl && uploadRes.videoUrl.includes('vercel-storage.com')) {
+        this.cleanupBlob(uploadRes.videoUrl).catch(() => {});
+      }
+      return { success: false, error: err.message || 'Lỗi mạng khi lưu thông tin video bài học.' };
+    }
   }
 
   private static saveToLocalStorage(videos: TheoryVideo[]): void {

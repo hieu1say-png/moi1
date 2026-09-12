@@ -10,6 +10,56 @@ import { MOCK_CHALLENGE_EXERCISES } from './exercisesData';
 
 export const MOCK_BADGES: Badge[] = [
   {
+    id: 'badge-3d-explorer',
+    title: 'Nhà Thám Hiểm Hình Học',
+    description: 'Khám phá và tương tác 3D trọn vẹn cả 3 hình: Trụ, Nón, Cầu.',
+    icon: 'Compass',
+    tier: 'gold',
+    shapeTheme: 'general',
+    criteria: 'Hoàn thành khám phá 3/3 hình không gian',
+    rarity: 'epic'
+  },
+  {
+    id: 'badge-speed-calc',
+    title: 'Kỷ Lục Gia Tính Nhanh',
+    description: 'Làm đúng 5 câu liên tiếp dưới 60 giây mỗi câu.',
+    icon: 'Target',
+    tier: 'silver',
+    shapeTheme: 'general',
+    criteria: 'Làm đúng 5 câu liên tiếp tốc độ cao',
+    rarity: 'rare'
+  },
+  {
+    id: 'badge-formula-master',
+    title: 'Bậc Thầy Công Thức',
+    description: 'Thuộc và vận dụng đúng toàn bộ công thức Sxq, Stp và Thể tích V.',
+    icon: 'Crown',
+    tier: 'diamond',
+    shapeTheme: 'general',
+    criteria: 'Áp dụng chính xác 100% công thức SGK',
+    rarity: 'legendary'
+  },
+  {
+    id: 'badge-exam-warrior',
+    title: 'Chiến Binh Ôn Thi',
+    description: 'Hoàn thành xuất sắc 3 đề thi thử chuẩn cấu trúc vào Lớp 10.',
+    icon: 'Award',
+    tier: 'gold',
+    shapeTheme: 'general',
+    criteria: 'Hoàn thành 3 đề thi thử vào 10',
+    rarity: 'epic'
+  },
+  {
+    id: 'badge-archimedes-water',
+    title: 'Thợ Rót Nước Archimedes',
+    description: 'Khám phá trọn vẹn thí nghiệm rót nước nón sang trụ và thả vật chìm.',
+    icon: 'Globe',
+    tier: 'silver',
+    shapeTheme: 'cylinder',
+    criteria: 'Thực hiện mô phỏng rót nước thực nghiệm',
+    rarity: 'rare'
+  },
+  {
     id: 'badge-explorer',
     title: 'Người Khám Phá',
     description: 'Khám phá và xoay tương tác đủ 3 mô hình 3D: Hình Trụ, Hình Nón, Hình Cầu.',

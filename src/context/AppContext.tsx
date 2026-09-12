@@ -80,6 +80,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       '/real-world',
       '/achievements',
       '/ai',
+      '/game',
       '/settings',
       '/student-profile',
       '/login',

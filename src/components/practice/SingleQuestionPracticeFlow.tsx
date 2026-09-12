@@ -197,7 +197,39 @@ export const SingleQuestionPracticeFlow: React.FC<SingleQuestionPracticeFlowProp
     setShowHint(false);
     setShowStepByStep(false);
     setDetectedCommonError(null);
+    setTimeSpent(0);
   };
+
+  // Phase 13: Luyện câu tương tự cùng dạng / cùng mức độ
+  const handlePracticeSimilar = useCallback(() => {
+    if (!currentExercise) {
+      pickRandomExercise();
+      return;
+    }
+
+    const currentShape = currentExercise.shapeId;
+    const currentDiff = currentExercise.difficulty;
+
+    // Search unified question bank for a sibling question of the same shape and difficulty
+    const exactCandidates = unifiedBank.filter(
+      (q) => q.id !== currentExercise.id && q.shape === currentShape && q.difficulty === currentDiff
+    );
+
+    const shapeCandidates = unifiedBank.filter(
+      (q) => q.id !== currentExercise.id && q.shape === currentShape
+    );
+
+    const targetPool = exactCandidates.length > 0 ? exactCandidates : (shapeCandidates.length > 0 ? shapeCandidates : unifiedBank);
+    if (targetPool.length > 0) {
+      const selected = targetPool[Math.floor(Math.random() * targetPool.length)];
+      setUsedQuestionIds((prev) => new Set(prev).add(selected.id));
+      resetInteractiveState();
+      setCurrentExercise(convertUnifiedToExercise(selected));
+      showInfo('Đã tải câu hỏi tương tự', `Dạng bài: ${selected.archetypeName || selected.topicLabel} (${selected.difficultyLabel || 'Cùng mức độ'})`);
+    } else {
+      pickRandomExercise(currentShape === 'mixed' ? 'all' : (currentShape as ShapeType), currentDiff);
+    }
+  }, [currentExercise, unifiedBank, pickRandomExercise, showInfo]);
 
   // Submit and Evaluate
   const handleSubmit = () => {
@@ -586,7 +618,7 @@ export const SingleQuestionPracticeFlow: React.FC<SingleQuestionPracticeFlowProp
                         key={idx}
                         disabled={hasSubmitted}
                         onClick={() => setMcSelectedOption(idx)}
-                        className={`p-3.5 sm:p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all cursor-pointer ${cardStyle}`}
+                        className={`p-3.5 sm:p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all cursor-pointer min-h-[56px] w-full select-none ${cardStyle}`}
                       >
                         <div
                           className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-bold flex items-center justify-center shrink-0 text-xs sm:text-sm ${
@@ -748,7 +780,7 @@ export const SingleQuestionPracticeFlow: React.FC<SingleQuestionPracticeFlowProp
                     Gửi Đáp Án & Kiểm Tra
                   </Button>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     <Button
                       variant="outline"
                       shape="pill"
@@ -760,12 +792,22 @@ export const SingleQuestionPracticeFlow: React.FC<SingleQuestionPracticeFlowProp
                       Làm lại câu này
                     </Button>
                     <Button
+                      variant="outline"
+                      shape="pill"
+                      size="md"
+                      onClick={handlePracticeSimilar}
+                      leftIcon={<Shuffle className="w-4 h-4 text-emerald-600" />}
+                      className="font-bold text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-xs cursor-pointer"
+                    >
+                      Luyện câu tương tự 🎯
+                    </Button>
+                    <Button
                       variant="primary"
                       shape="pill"
                       size="md"
                       onClick={() => pickRandomExercise()}
                       rightIcon={<ArrowRight className="w-4 h-4" />}
-                      className="font-bold text-xs sm:text-sm bg-orange-500 hover:bg-orange-600 text-white shadow-xs"
+                      className="font-bold text-xs sm:text-sm bg-[#16A34A] hover:bg-[#15803D] text-white shadow-xs cursor-pointer"
                     >
                       Câu Tiếp Theo →
                     </Button>
@@ -802,6 +844,7 @@ export const SingleQuestionPracticeFlow: React.FC<SingleQuestionPracticeFlowProp
               detectedError={detectedCommonError}
               onRetry={resetInteractiveState}
               onNext={() => pickRandomExercise()}
+              onPracticeSimilar={handlePracticeSimilar}
             />
           )}
         </div>

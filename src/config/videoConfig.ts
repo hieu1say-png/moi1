@@ -42,18 +42,18 @@ export type SystemVideoLesson = SystemVideoConfig;
 export const SYSTEM_LESSON_VIDEOS = {
   cylinder: {
     title: "Video bài học Hình trụ",
-    source: "/uploads/videos/tru.mp4",
-    type: "uploaded" as const
+    source: "",
+    type: "none" as const
   },
   cone: {
     title: "Video bài học Hình nón",
-    source: "/uploads/videos/non.mp4",
-    type: "uploaded" as const
+    source: "",
+    type: "none" as const
   },
   sphere: {
     title: "Video bài học Hình cầu",
-    source: "/uploads/videos/cau.mp4",
-    type: "uploaded" as const
+    source: "",
+    type: "none" as const
   }
 } as const;
 
@@ -61,23 +61,21 @@ export const lessonVideos = SYSTEM_LESSON_VIDEOS;
 
 /**
  * SINGLE SOURCE OF TRUTH - SYSTEM_VIDEOS
- * Centralized mapping for the 3 verified physical uploaded geometry videos.
- * cylinder -> /uploads/videos/tru.mp4 (fallback: /assets/videos/tru.mp4)
- * cone -> /uploads/videos/non.mp4 (fallback: /assets/videos/non.mp4)
- * sphere -> /uploads/videos/cau.mp4 (fallback: /assets/videos/cau.mp4)
+ * Centralized mapping for the 3 geometric topics.
+ * Adheres strictly to Zero-Fake Policy: src is empty until teacher uploads real video file.
  */
 export const SYSTEM_VIDEOS: Record<GeometricTopic, SystemVideoConfig> = {
   cylinder: {
     id: 'system-cylinder',
     title: SYSTEM_LESSON_VIDEOS.cylinder.title,
     shape: 'cylinder',
-    src: SYSTEM_LESSON_VIDEOS.cylinder.source,
-    fallbackSrc: '/assets/videos/tru.mp4',
-    poster: '/assets/videos/tru_poster.jpg',
+    src: '',
+    fallbackSrc: '',
+    poster: '',
     type: 'system',
     mimeType: 'video/mp4',
-    durationFormatted: '00:15',
-    durationSeconds: 15,
+    durationFormatted: '00:00',
+    durationSeconds: 0,
     subtitle: 'Khái niệm, các yếu tố & công thức diện tích, thể tích hình trụ',
     description:
       'Quan sát sự tạo thành hình trụ khi quay hình chữ nhật quanh trục cố định. Xác định bán kính đáy R, chiều cao h, đường sinh và công thức S_xq = 2πRh, V = πR²h.',
@@ -91,13 +89,13 @@ export const SYSTEM_VIDEOS: Record<GeometricTopic, SystemVideoConfig> = {
     id: 'system-cone',
     title: SYSTEM_LESSON_VIDEOS.cone.title,
     shape: 'cone',
-    src: SYSTEM_LESSON_VIDEOS.cone.source,
-    fallbackSrc: '/assets/videos/non.mp4',
-    poster: '/assets/videos/non_poster.jpg',
+    src: '',
+    fallbackSrc: '',
+    poster: '',
     type: 'system',
     mimeType: 'video/mp4',
-    durationFormatted: '00:15',
-    durationSeconds: 15,
+    durationFormatted: '00:00',
+    durationSeconds: 0,
     subtitle: 'Khái niệm, đỉnh, chiều cao h, bán kính r, đường sinh l & công thức',
     description:
       'Quan sát sự tạo thành hình nón khi quay tam giác vuông quanh trục cố định. Mối liên hệ Pytago l² = h² + r² và công thức S_xq = πrl, V = (1/3)πr²h.',
@@ -111,13 +109,13 @@ export const SYSTEM_VIDEOS: Record<GeometricTopic, SystemVideoConfig> = {
     id: 'system-sphere',
     title: SYSTEM_LESSON_VIDEOS.sphere.title,
     shape: 'sphere',
-    src: SYSTEM_LESSON_VIDEOS.sphere.source,
-    fallbackSrc: '/assets/videos/cau.mp4',
-    poster: '/assets/videos/cau_poster.jpg',
+    src: '',
+    fallbackSrc: '',
+    poster: '',
     type: 'system',
     mimeType: 'video/mp4',
-    durationFormatted: '00:15',
-    durationSeconds: 15,
+    durationFormatted: '00:00',
+    durationSeconds: 0,
     subtitle: 'Khái niệm, tâm O, bán kính R & công thức diện tích mặt cầu, thể tích',
     description:
       'Quan sát sự tạo thành hình cầu khi quay nửa hình tròn quanh trục đường kính. Xác định tâm O, bán kính R, mặt cắt qua tâm và công thức S = 4πR², V = (4/3)πR³.',

@@ -20,6 +20,7 @@ import {
   Settings,
   Bot,
   GraduationCap,
+  Gamepad2,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -38,6 +39,7 @@ const PRIMARY_TABS: NavTab[] = [
 ];
 
 const BASE_MORE_TABS: NavTab[] = [
+  { route: '/game', label: 'Hình Học 9 Master', icon: Gamepad2 },
   { route: '/exam-prep', label: 'Ôn thi vào 10', icon: GraduationCap },
   { route: '/real-world', label: 'Ứng dụng thực tế', icon: Globe },
   { route: '/achievements', label: 'Thành tích', icon: Award },

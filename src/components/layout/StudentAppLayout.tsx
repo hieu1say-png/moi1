@@ -22,6 +22,7 @@ import { RealWorldView } from '../../views/RealWorldView';
 import { AchievementsView } from '../../views/AchievementsView';
 import { AIView } from '../../views/AIView';
 import { StudentProfileView } from '../student/StudentProfileView';
+import { GeometryMasterGameView } from '../../views/GeometryMasterGameView';
 import { LogoutConfirmModal } from '../auth/LogoutConfirmModal';
 import { FirstLoginChangePasswordModal } from '../auth/FirstLoginChangePasswordModal';
 
@@ -60,6 +61,8 @@ const StudentRouteRenderer: React.FC = () => {
       return <AchievementsView />;
     case '/ai':
       return <AIView />;
+    case '/game':
+      return <GeometryMasterGameView />;
     case '/home':
     default:
       return <HomeView />;

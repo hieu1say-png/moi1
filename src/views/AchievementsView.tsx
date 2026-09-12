@@ -48,10 +48,24 @@ export const AchievementsView: React.FC = () => {
           </div>
         </div>
 
-        <UiBadge variant="achievement" size="md">
-          <Trophy className="w-4 h-4 mr-1 text-amber-600" />
-          Cấp Độ {userStats.level}
-        </UiBadge>
+        {(() => {
+          const getLevelInfo = (xp: number) => {
+            if (xp >= 1000) return { level: 5, title: 'Bậc Thầy Không Gian', min: 1000, next: null };
+            if (xp >= 600) return { level: 4, title: 'Chuyên Gia Hình Học 9', min: 600, next: 1000 };
+            if (xp >= 300) return { level: 3, title: 'Nhà Thám Hiểm 3D', min: 300, next: 600 };
+            if (xp >= 100) return { level: 2, title: 'Tập Sự Không Gian', min: 100, next: 300 };
+            return { level: 1, title: 'Tân Binh Hình Học', min: 0, next: 100 };
+          };
+          const currentRank = getLevelInfo(userStats.xp);
+          return (
+            <div className="flex items-center gap-3">
+              <UiBadge variant="achievement" size="md">
+                <Trophy className="w-4 h-4 mr-1 text-amber-600" />
+                Cấp {currentRank.level}: {currentRank.title}
+              </UiBadge>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Stats Summary Cards */}
@@ -63,7 +77,14 @@ export const AchievementsView: React.FC = () => {
             <Sparkles className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-950 font-mono">{userStats.xp}</div>
-          <div className="text-[11px] text-slate-500 mt-1">Cần {500 - (userStats.xp % 500)} XP lên cấp tiếp theo</div>
+          {(() => {
+            const xp = userStats.xp;
+            if (xp >= 1000) return <div className="text-[11px] text-emerald-600 font-bold mt-1">Đã đạt danh hiệu cao nhất! 👑</div>;
+            if (xp >= 600) return <div className="text-[11px] text-slate-500 mt-1">Cần {1000 - xp} XP lên Cấp 5</div>;
+            if (xp >= 300) return <div className="text-[11px] text-slate-500 mt-1">Cần {600 - xp} XP lên Cấp 4</div>;
+            if (xp >= 100) return <div className="text-[11px] text-slate-500 mt-1">Cần {300 - xp} XP lên Cấp 3</div>;
+            return <div className="text-[11px] text-slate-500 mt-1">Cần {100 - xp} XP lên Cấp 2</div>;
+          })()}
         </Card>
 
         {/* Streak */}

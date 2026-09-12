@@ -30,7 +30,8 @@ import {
   ChevronRight,
   FileCheck,
   GraduationCap,
-  Timer
+  Timer,
+  Gamepad2
 } from 'lucide-react';
 import { AdaptiveExamService } from '../services/adaptiveExamService';
 import { ShapeType } from '../types';
@@ -193,6 +194,15 @@ export const HomeView: React.FC = () => {
                 >
                   <GraduationCap className="w-4 h-4 text-[#16A34A]" />
                   <span>LUYỆN THI VÀO 10</span>
+                </button>
+                <button
+                  type="button"
+                  id="hero-btn-game"
+                  onClick={() => navigateTo('/game')}
+                  className="px-5 py-2.5 rounded-full border border-indigo-200 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-900 font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Gamepad2 className="w-4 h-4 text-indigo-600" />
+                  <span>🎮 GAME HÌNH HỌC 9</span>
                 </button>
               </div>
             </div>

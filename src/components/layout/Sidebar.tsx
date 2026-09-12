@@ -23,7 +23,8 @@ import {
   ChevronRight,
   Bot,
   GraduationCap,
-  School
+  School,
+  Gamepad2
 } from 'lucide-react';
 import { ProgressBar } from '../common/ProgressBar';
 import { useTeacherStore } from '../../stores/useTeacherStore';
@@ -46,6 +47,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { route: '/practice', label: 'Luyện tập', icon: CheckSquare, badge: '6 Dạng' },
   { route: '/exam-prep', label: 'Ôn thi vào 10', icon: GraduationCap, badge: 'Đề thi', badgeClass: 'bg-[#FDF0ED] text-[#8F3E32] border border-[#F4D2CA]' },
   { route: '/real-world', label: 'Ứng dụng thực tế', icon: Globe },
+  { route: '/game', label: 'Hình Học 9 Master', icon: Gamepad2, badge: '🎮 Game', badgeClass: 'bg-indigo-50 text-indigo-700 border border-indigo-200' },
   { route: '/achievements', label: 'Thành tích', icon: Award }
 ];
 

@@ -55,7 +55,7 @@ import { Button } from '../common/Button';
 import { LessonVideo } from '../video/LessonVideo';
 
 type SortOption = 'ORDER' | 'CREATED_DESC' | 'UPDATED_DESC' | 'TITLE_ASC';
-type UploadStepState = 'IDLE' | 'SELECTED' | 'UPLOADING' | 'SAVING' | 'SAVED' | 'ERROR';
+type UploadStepState = 'IDLE' | 'SELECTED' | 'UPLOADING' | 'UPLOADED' | 'SAVING' | 'SAVED' | 'ERROR';
 
 export const TeacherVideosTab: React.FC = () => {
   const { showSuccess, showError, showInfo } = useToast();
@@ -77,6 +77,8 @@ export const TeacherVideosTab: React.FC = () => {
   // Upload states
   const [uploadStep, setUploadStep] = useState<UploadStepState>('IDLE');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [isExternalUrlMode, setIsExternalUrlMode] = useState<boolean>(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState<boolean>(false);
   const [isFormDirty, setIsFormDirty] = useState<boolean>(false);
 
@@ -165,12 +167,14 @@ export const TeacherVideosTab: React.FC = () => {
 
   const handleOpenCreateModal = () => {
     setEditingVideoId(null);
+    setSelectedVideoFile(null);
+    setIsExternalUrlMode(false);
     setFormData({
       title: '',
       topic: activeTopicTab === 'ALL' ? 'CYLINDER' : activeTopicTab,
       section: 'THEORY',
       description: '',
-      videoUrl: activeTopicTab === 'CONE' ? '/assets/videos/non.mp4' : activeTopicTab === 'SPHERE' ? '/assets/videos/cau.mp4' : '/assets/videos/tru.mp4',
+      videoUrl: '',
       thumbnailUrl: activeTopicTab === 'CONE' ? '/assets/videos/non_poster.jpg' : activeTopicTab === 'SPHERE' ? '/assets/videos/cau_poster.jpg' : '/assets/videos/tru_poster.jpg',
       duration: '00:15',
       fileName: '',
@@ -200,6 +204,9 @@ export const TeacherVideosTab: React.FC = () => {
 
   const handleOpenEditModal = (video: TheoryVideo) => {
     setEditingVideoId(video.id);
+    setSelectedVideoFile(null);
+    const isExt = Boolean(video.videoUrl && (video.videoUrl.startsWith('http://') || video.videoUrl.startsWith('https://')) && !video.videoUrl.includes('vercel-storage.com'));
+    setIsExternalUrlMode(isExt);
     setFormData({
       title: video.title,
       topic: video.topic,
@@ -217,15 +224,73 @@ export const TeacherVideosTab: React.FC = () => {
       authorName: video.authorName || teacherUser?.fullName || 'ThS. Trần Ngọc Hiếu',
       authorId: video.authorId || teacherUser?.id || 'usr-teacher-001'
     });
-    setUploadStep('IDLE');
-    setUploadProgress(0);
+    setUploadStep('UPLOADED');
+    setUploadProgress(100);
     setIsFormDirty(false);
     setIsFormModalOpen(true);
   };
 
+  // Step 1: Teacher chooses a video file (MP4 / WebM)
+  const handleSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 500 * 1024 * 1024) {
+      showError('Tệp quá lớn', 'Kích thước video tối đa cho phép là 500MB.');
+      return;
+    }
+
+    setSelectedVideoFile(file);
+    setUploadStep('SELECTED');
+    setUploadProgress(0);
+    if (!formData.title.trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        title: file.name.replace(/\.[^/.]+$/, '')
+      }));
+    }
+    setIsFormDirty(true);
+    e.target.value = '';
+  };
+
+  // Step 2 & 3: Teacher triggers direct upload (to Vercel Blob / safe chunked storage)
+  const handleUploadSelectedFile = async () => {
+    if (!selectedVideoFile) return;
+
+    setUploadStep('UPLOADING');
+    setUploadProgress(0);
+    showInfo(`Đang tải video trực tiếp lên kho lưu trữ: ${selectedVideoFile.name}...`);
+
+    try {
+      const uploadRes = await TheoryVideoService.uploadVideoFile(selectedVideoFile, (percent) => {
+        setUploadProgress(percent);
+      });
+
+      if (uploadRes.success && uploadRes.videoUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          videoUrl: uploadRes.videoUrl || '',
+          fileName: uploadRes.fileName || selectedVideoFile.name,
+          fileSize: uploadRes.fileSize || selectedVideoFile.size,
+          mimeType: uploadRes.mimeType || selectedVideoFile.type,
+          title: prev.title || selectedVideoFile.name.replace(/\.[^/.]+$/, '')
+        }));
+        setIsFormDirty(true);
+        setUploadStep('UPLOADED');
+        showSuccess('Tải lên hoàn tất', `Video đã sẵn sàng (${(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB).`);
+      } else {
+        setUploadStep('ERROR');
+        showError('Tải lên thất bại', uploadRes.error || 'Không thể lưu video lên kho lưu trữ.');
+      }
+    } catch (err: any) {
+      setUploadStep('ERROR');
+      showError('Lỗi tải tệp', err.message || 'Lỗi mạng khi tải lên tệp video.');
+    }
+  };
+
+  // Step 4: Save video metadata atomically
   const handleSaveVideo = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Submission lock: Strictly prevent double clicks / parallel duplicate submission
     if (isSubmittingRef.current || isSubmitting || uploadStep === 'SAVING' || uploadStep === 'UPLOADING') {
       return;
     }
@@ -238,8 +303,48 @@ export const TeacherVideosTab: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
-    if (!formData.videoUrl.trim()) {
-      showError('Thiếu đường dẫn video', 'Vui lòng nhập đường dẫn hoặc tải lên video bài học.');
+
+    let finalVideoUrl = formData.videoUrl;
+    let finalFileName = formData.fileName;
+    let finalFileSize = formData.fileSize;
+    let finalMimeType = formData.mimeType;
+
+    // If teacher selected a file but forgot to click "Tải lên", automatically upload it now
+    if (uploadStep === 'SELECTED' && selectedVideoFile) {
+      setUploadStep('UPLOADING');
+      setUploadProgress(0);
+      showInfo(`Đang tải video lên kho lưu trữ trước khi lưu...`);
+      try {
+        const uploadRes = await TheoryVideoService.uploadVideoFile(selectedVideoFile, (pct) => setUploadProgress(pct));
+        if (!uploadRes.success || !uploadRes.videoUrl) {
+          setUploadStep('ERROR');
+          showError('Tải lên thất bại', uploadRes.error || 'Không thể tải video lên kho lưu trữ.');
+          isSubmittingRef.current = false;
+          setIsSubmitting(false);
+          return;
+        }
+        finalVideoUrl = uploadRes.videoUrl;
+        finalFileName = uploadRes.fileName || selectedVideoFile.name;
+        finalFileSize = uploadRes.fileSize || selectedVideoFile.size;
+        finalMimeType = uploadRes.mimeType || selectedVideoFile.type;
+        setFormData((prev) => ({
+          ...prev,
+          videoUrl: finalVideoUrl,
+          fileName: finalFileName,
+          fileSize: finalFileSize,
+          mimeType: finalMimeType
+        }));
+      } catch (err: any) {
+        setUploadStep('ERROR');
+        showError('Lỗi tải tệp', err.message || 'Lỗi mạng khi tải tệp video.');
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    if (!finalVideoUrl.trim()) {
+      showError('Thiếu video', 'Vui lòng chọn tệp video và tải lên bài học.');
       isSubmittingRef.current = false;
       setIsSubmitting(false);
       return;
@@ -250,6 +355,10 @@ export const TeacherVideosTab: React.FC = () => {
       if (editingVideoId) {
         const res = await TheoryVideoService.updateVideoAsync(editingVideoId, {
           ...formData,
+          videoUrl: finalVideoUrl,
+          fileName: finalFileName,
+          fileSize: finalFileSize,
+          mimeType: finalMimeType,
           authorId: teacherUser?.id || formData.authorId,
           authorName: teacherUser?.fullName || formData.authorName
         });
@@ -258,6 +367,7 @@ export const TeacherVideosTab: React.FC = () => {
           setUploadStep('SAVED');
           setIsFormDirty(false);
           setIsFormModalOpen(false);
+          setSelectedVideoFile(null);
         } else {
           setUploadStep('ERROR');
           showError('Lỗi cập nhật', res.error || 'Không thể lưu thay đổi.');
@@ -265,6 +375,10 @@ export const TeacherVideosTab: React.FC = () => {
       } else {
         const res = await TheoryVideoService.createVideoAsync({
           ...formData,
+          videoUrl: finalVideoUrl,
+          fileName: finalFileName,
+          fileSize: finalFileSize,
+          mimeType: finalMimeType,
           authorId: teacherUser?.id || 'usr-teacher-001',
           authorName: teacherUser?.fullName || formData.authorName
         });
@@ -273,14 +387,22 @@ export const TeacherVideosTab: React.FC = () => {
           setUploadStep('SAVED');
           setIsFormDirty(false);
           setIsFormModalOpen(false);
+          setSelectedVideoFile(null);
         } else {
           setUploadStep('ERROR');
           showError('Lỗi tạo video', res.error || 'Không thể lưu video mới.');
+          // Cleanup orphaned blob if save failed
+          if (finalVideoUrl.includes('vercel-storage.com')) {
+            TheoryVideoService.cleanupBlob(finalVideoUrl).catch(() => {});
+          }
         }
       }
     } catch (err: any) {
       setUploadStep('ERROR');
       showError('Lỗi máy chủ', err.message || 'Có lỗi xảy ra khi lưu video.');
+      if (finalVideoUrl.includes('vercel-storage.com')) {
+        TheoryVideoService.cleanupBlob(finalVideoUrl).catch(() => {});
+      }
     } finally {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
@@ -318,50 +440,6 @@ export const TeacherVideosTab: React.FC = () => {
     ) {
       await TheoryVideoService.resetToDefaultVideosAsync();
       showSuccess('Khôi phục thành công', 'Đã nạp lại các video bài giảng chuẩn chương trình.');
-    }
-  };
-
-  // Video File Upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      showError('Tệp quá lớn', 'Kích thước video tối đa cho phép là 100MB.');
-      return;
-    }
-
-    setUploadStep('UPLOADING');
-    setUploadProgress(0);
-    showInfo(`Đang tải lên máy chủ: ${file.name}...`);
-
-    try {
-      const uploadRes = await TheoryVideoService.uploadVideoFile(file, (percent) => {
-        setUploadProgress(percent);
-      });
-
-      if (uploadRes.success && uploadRes.videoUrl) {
-        setFormData((prev) => ({
-          ...prev,
-          videoUrl: uploadRes.videoUrl || '',
-          fileName: uploadRes.fileName || file.name,
-          fileSize: uploadRes.fileSize || file.size,
-          mimeType: uploadRes.mimeType || file.type,
-          title: prev.title || file.name.replace(/\.[^/.]+$/, '')
-        }));
-        setIsFormDirty(true);
-        setUploadStep('SELECTED');
-        showSuccess('Tải lên hoàn tất', `Video đã được lưu vào máy chủ (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
-      } else {
-        setUploadStep('ERROR');
-        showError('Tải lên thất bại', uploadRes.error || 'Không thể lưu video lên máy chủ.');
-      }
-    } catch (err: any) {
-      setUploadStep('ERROR');
-      showError('Lỗi tải tệp', err.message || 'Lỗi mạng khi tải lên tệp video.');
-    } finally {
-      e.target.value = '';
     }
   };
 
@@ -590,18 +668,6 @@ export const TeacherVideosTab: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            shape="pill"
-            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-            onClick={handleResetDefaults}
-            className="text-xs"
-            title="Khôi phục các video mẫu mặc định"
-          >
-            Mặc định
-          </Button>
-
           <Button
             id="btn-teacher-add-video"
             variant="primary"
@@ -913,75 +979,146 @@ export const TeacherVideosTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 3: Video File Upload & URL */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Đường dẫn Video hoặc Tải tệp MP4 <span className="text-rose-500">*</span>
-                </label>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+              {/* Row 3: Video File Upload & Storage (Architecture: Direct Client to Blob / Chunked) */}
+              <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Film className="w-4 h-4 text-blue-600" />
+                    <span>Tệp Video Bài Giảng (MP4)</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsExternalUrlMode(!isExternalUrlMode)}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 underline cursor-pointer"
+                  >
+                    {isExternalUrlMode ? 'Tải tệp MP4 lên' : 'Dùng liên kết ngoài (URL)'}
+                  </button>
+                </div>
+
+                {!isExternalUrlMode ? (
+                  <div className="space-y-3">
+                    {/* Bước 1: Chọn file */}
+                    {!selectedVideoFile && !formData.videoUrl ? (
+                      <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl bg-white cursor-pointer transition-colors group">
+                        <Upload className="w-6 h-6 text-slate-400 group-hover:text-blue-600 transition-colors mb-2" />
+                        <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600">
+                          [ Chọn video bài giảng (MP4) ]
+                        </span>
+                        <span className="text-[11px] text-slate-400 mt-1">
+                          Hỗ trợ tệp MP4, WebM (Dung lượng lớn 50MB – 500MB)
+                        </span>
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          onChange={handleSelectFile}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : selectedVideoFile && uploadStep === 'SELECTED' ? (
+                      /* Bước 2: Đã chọn file, chuẩn bị tải lên */
+                      <div className="p-3.5 bg-white rounded-xl border border-blue-200 flex items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <Film className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate">{selectedVideoFile.name}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">
+                              {(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB • Đã chọn tệp
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <label className="px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors border border-slate-200">
+                            <span>Đổi tệp</span>
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                              onChange={handleSelectFile}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleUploadSelectedFile}
+                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Tải lên</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : uploadStep === 'UPLOADING' ? (
+                      /* Bước 2/3: Đang upload trực tiếp */
+                      <div className="p-4 bg-white rounded-xl border border-blue-200 space-y-2.5 shadow-2xs">
+                        <div className="flex items-center justify-between text-xs font-bold text-blue-900">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                            <span>Đang tải video trực tiếp lên kho lưu trữ...</span>
+                          </span>
+                          <span className="font-mono text-blue-700">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-blue-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-600 rounded-full transition-all duration-150 ease-out"
+                            style={{ width: `${Math.max(uploadProgress, 4)}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          {selectedVideoFile ? `${selectedVideoFile.name} (${(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB)` : 'Đang xử lý...'}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Bước 3: Hoàn thành upload */
+                      <div className="p-3.5 bg-emerald-50/90 rounded-xl border border-emerald-200 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-emerald-900">✓ Video đã tải lên thành công</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                {formData.videoUrl && (formData.videoUrl.includes('vercel-storage.com') || formData.videoUrl.includes('blob.vercel-storage.com'))
+                                  ? 'Vercel Blob Storage'
+                                  : 'Kho lưu trữ máy chủ'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-emerald-700 truncate font-mono mt-0.5">
+                              {formData.fileName || (formData.fileSize ? `${(formData.fileSize / (1024 * 1024)).toFixed(1)} MB` : formData.videoUrl)}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="px-2.5 py-1 text-xs text-emerald-800 hover:bg-emerald-100 rounded-lg cursor-pointer transition-colors border border-emerald-300 shrink-0">
+                          <span>Thay video khác</span>
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                            onChange={handleSelectFile}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* External URL Input */
+                  <div className="space-y-1.5">
                     <input
-                      type="text"
+                      type="url"
                       required
-                      placeholder="https://example.com/video.mp4 hoặc /uploads/videos/..."
+                      placeholder="https://server.domain/video.mp4"
                       value={formData.videoUrl}
                       onChange={(e) => {
                         setFormData({ ...formData, videoUrl: e.target.value });
                         setIsFormDirty(true);
                       }}
-                      className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                     />
-                    <label
-                      className={`px-3 py-2 ${
-                        uploadStep === 'UPLOADING'
-                          ? 'bg-slate-200 cursor-not-allowed text-slate-400'
-                          : 'bg-blue-50 hover:bg-blue-100 text-blue-700 cursor-pointer'
-                      } rounded-xl text-xs font-bold flex items-center gap-1.5 border border-blue-200 transition-colors`}
-                    >
-                      <Upload
-                        className={`w-3.5 h-3.5 ${uploadStep === 'UPLOADING' ? 'animate-bounce' : ''}`}
-                      />
-                      <span>{uploadStep === 'UPLOADING' ? 'Đang tải...' : 'Tải lên MP4'}</span>
-                      <input
-                        type="file"
-                        accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                        disabled={uploadStep === 'UPLOADING'}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <p className="text-[11px] text-slate-500 italic">
+                      Nhập đường dẫn trực tiếp (HTTPS) tới video bài giảng.
+                    </p>
                   </div>
-
-                  {/* Upload Progress Bar */}
-                  {uploadStep === 'UPLOADING' && (
-                    <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-100 space-y-1.5 animate-fadeIn">
-                      <div className="flex items-center justify-between text-xs font-semibold text-blue-900">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-                          Đang lưu trữ video vào ổ đĩa máy chủ...
-                        </span>
-                        <span className="font-mono font-bold text-blue-700">{uploadProgress}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-blue-200/60 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-600 rounded-full transition-all duration-200 ease-out"
-                          style={{ width: `${Math.max(uploadProgress, 5)}%` }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-blue-600 italic">
-                        Video sẽ được lưu bền vững tại thư mục máy chủ, không bao giờ mất sau khi đăng xuất/đăng nhập lại.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Server Storage Confirmation Badge */}
-                  {uploadStep !== 'UPLOADING' && formData.videoUrl && formData.videoUrl.startsWith('/uploads/') && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-200 text-[11px] font-medium">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Video đã lưu trữ vĩnh viễn trên máy chủ ({formData.videoUrl}).</span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Row 4: Thumbnail File Upload & URL */}

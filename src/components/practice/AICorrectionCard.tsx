@@ -35,7 +35,8 @@ import {
   Brain,
   HelpCircle,
   Loader2,
-  Award
+  Award,
+  Shuffle
 } from 'lucide-react';
 
 interface AICorrectionCardProps {
@@ -46,6 +47,7 @@ interface AICorrectionCardProps {
   detectedError?: { title: string; desc: string } | null;
   onRetry: () => void;
   onNext: () => void;
+  onPracticeSimilar?: () => void;
 }
 
 export const AICorrectionCard: React.FC<AICorrectionCardProps> = ({
@@ -55,7 +57,8 @@ export const AICorrectionCard: React.FC<AICorrectionCardProps> = ({
   timeSpent,
   detectedError,
   onRetry,
-  onNext
+  onNext,
+  onPracticeSimilar
 }) => {
   const [correctionData, setCorrectionData] = useState<ComprehensiveCorrection>(() =>
     generateExerciseSolution(exercise, userAnswer, isCorrect, detectedError)
@@ -504,18 +507,33 @@ Lời khuyên từ Thầy Hiếu: ${correctionData.teacherTip}`;
           Làm lại bài này
         </Button>
 
-        <Button
-          variant="primary"
-          shape="pill"
-          size="md"
-          onClick={() => {
-            onNext();
-          }}
-          rightIcon={<ArrowRight className="w-4 h-4" />}
-          className="text-xs sm:text-sm font-bold bg-[#ED806F] hover:bg-[#C96859] text-white shadow-xs"
-        >
-          Sang câu tiếp theo
-        </Button>
+        <div className="flex items-center gap-2">
+          {onPracticeSimilar && (
+            <Button
+              variant="outline"
+              shape="pill"
+              size="md"
+              onClick={onPracticeSimilar}
+              leftIcon={<Shuffle className="w-4 h-4 text-[#059669]" />}
+              className="text-xs sm:text-sm font-bold bg-[#ECFDF5] hover:bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0] shadow-xs cursor-pointer"
+            >
+              Luyện câu tương tự 🎯
+            </Button>
+          )}
+
+          <Button
+            variant="primary"
+            shape="pill"
+            size="md"
+            onClick={() => {
+              onNext();
+            }}
+            rightIcon={<ArrowRight className="w-4 h-4" />}
+            className="text-xs sm:text-sm font-bold bg-[#16A34A] hover:bg-[#15803D] text-white shadow-xs cursor-pointer"
+          >
+            Sang câu tiếp theo
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

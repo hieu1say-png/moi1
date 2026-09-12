@@ -48,6 +48,7 @@ import { ThreeErrorBoundary } from '../components/explore/ThreeErrorBoundary';
 import { MyMathematicalModelModal } from '../components/explore/MyMathematicalModelModal';
 import { WaterPouringExplanationModal } from '../components/explore/WaterPouringExplanationModal';
 import { FocusModeToggle } from '../components/common/FocusModeToggle';
+import { QuickInsightPredictor } from '../components/explore/QuickInsightPredictor';
 import { Printer, FileSpreadsheet, Sparkles } from 'lucide-react';
 
 export const ExploreView: React.FC = () => {
@@ -198,6 +199,14 @@ export const ExploreView: React.FC = () => {
 
   const handleUnfoldComplete = useCallback((message: string) => {
     showSuccess('Khai triển thành công!', message);
+  }, [showSuccess]);
+
+  const handleApplyInsightParams = useCallback((r?: number, h?: number, mode?: string) => {
+    if (r !== undefined) setRadius(r);
+    if (h !== undefined) setHeight(h);
+    if (mode === 'cross-section') setViewMode('cross-section');
+    if (mode === 'liquid') setExplorationMode('liquid');
+    showSuccess('Đã đồng bộ thông số vào mô hình 3D!', 'Quan sát phản ứng hình học ngay bên dưới.');
   }, [showSuccess]);
 
   const renderDockedHUD = () => {
@@ -364,6 +373,12 @@ export const ExploreView: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Phase 11: Dự đoán trước khi thử nghiệm (Quick Insight Predictor) */}
+      <QuickInsightPredictor
+        shape={selectedShape}
+        onApplyParams={handleApplyInsightParams}
+      />
 
       {isRevolvingFormation ? (
         /* Full-width 360° Revolving Geometry Generator for all shapes */

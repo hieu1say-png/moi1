@@ -70,10 +70,10 @@
     --neo-radius-sm: 12px;
     --neo-radius-lg: 24px;
 
-    /* Typography */
-    --font-ui: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
-    --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-    --font-serif-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    /* Typography - Standardized Academic Times New Roman for Geometry Lab */
+    --font-ui: 'Times New Roman', Times, 'Tinos', 'Plus Jakarta Sans', serif;
+    --font-heading: 'Times New Roman', Times, 'Tinos', serif;
+    --font-serif-heading: 'Times New Roman', Times, 'Tinos', serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
 
@@ -83,22 +83,71 @@
     width: 100%;
   }
 
+  body, button, input, select, textarea, table, th, td, label, p, span, a, li, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Times New Roman', Times, 'Tinos', serif;
+  }
+
   body {
     background-color: var(--neo-bg);
     color: var(--neo-text);
-    font-family: var(--font-ui);
+    font-family: 'Times New Roman', Times, 'Tinos', serif;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
     max-width: 100vw;
     width: 100%;
+    font-size: 16px;
+    line-height: 1.6;
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: var(--font-heading);
-    font-weight: 900;
+    font-family: 'Times New Roman', Times, 'Tinos', serif;
+    font-weight: 800;
     color: #000000;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
+  }
+
+  /* Academic Grade 9 Question Typography */
+  .question-text {
+    font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+    font-size: 18px;
+    line-height: 1.6;
+    color: #0F291E;
+  }
+
+  @media (min-width: 768px) {
+    .question-text {
+      font-size: 21px;
+      line-height: 1.65;
+    }
+  }
+
+  .option-text {
+    font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #0F291E;
+  }
+
+  @media (min-width: 768px) {
+    .option-text {
+      font-size: 18px;
+      line-height: 1.55;
+    }
+  }
+
+  .explanation-text {
+    font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1F2937;
+  }
+
+  @media (min-width: 768px) {
+    .explanation-text {
+      font-size: 18px;
+      line-height: 1.65;
+    }
   }
 
   /* Universal Focus Indicator (WCAG AA Compliant, High Contrast) */
@@ -352,45 +401,47 @@
 
 /* Question, Option & Formula Typography Standards */
 .gl-question-text {
-  font-family: 'Times New Roman', Times, 'Tinos', serif;
-  font-size: 1.0625rem;
-  line-height: 1.7;
+  font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+  font-size: 19px;
+  line-height: 1.65;
   color: #000000;
   font-weight: 500;
   text-align: left;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .gl-question-text {
-    font-size: 1.125rem;
-    line-height: 1.75;
+    font-size: 21px;
+    line-height: 1.7;
   }
 }
 
 .gl-option-text {
-  font-family: 'Times New Roman', Times, 'Tinos', serif;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+  font-size: 17px;
+  line-height: 1.55;
   color: #000000;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .gl-option-text {
-    font-size: 1.0625rem;
+    font-size: 18px;
+    line-height: 1.6;
   }
 }
 
 .gl-solution-text {
-  font-family: 'Times New Roman', Times, 'Tinos', serif;
-  font-size: 1rem;
-  line-height: 1.75;
+  font-family: 'Times New Roman', Times, 'Tinos', serif !important;
+  font-size: 17px;
+  line-height: 1.65;
   color: #000000;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .gl-solution-text {
-    font-size: 1.0625rem;
+    font-size: 18px;
+    line-height: 1.7;
   }
 }
 
@@ -680,6 +731,21 @@
 
 .husky-covering-eyes .husky-paws-wrapper {
   transform: translateY(-28px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 
