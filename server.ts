@@ -11,7 +11,8 @@ import {
   thumbnailUploadMiddleware,
   isSystemVideo,
   isTeacherVideo,
-  UPLOADS_DIR
+  UPLOADS_DIR,
+  storagePaths
 } from "./server/theoryVideoStorage";
 import { StudentProgressStorage } from "./server/studentProgressStorage";
 import {
@@ -460,10 +461,26 @@ app.get("/api/health", (_req, res) => {
   // Persistent Theory Videos Management API Endpoints
   // =========================================================================
 
+  // Direct Video Upload to /api/upload Guard
+  // Reject raw multi-megabyte body streams through Vercel Functions to prevent HTTP 413/500
+  app.post("/api/upload", (req, res) => {
+    return res.status(400).json({
+      error: "Tải video trực tiếp qua /api/upload không được hỗ trợ trên môi trường Vercel Serverless (giới hạn 4.5MB). Vui lòng sử dụng Direct Upload tới Object Storage qua /api/theory-videos/blob-upload.",
+      code: "USE_DIRECT_UPLOAD"
+    });
+  });
+
   // Video File Upload Endpoint (Teacher action ONLY)
-  // Conforms to TEACHER MEDIA Storage: teacher/{uid}/{videoId}
+  // Legacy / Local fallback route - strictly guarded against Vercel serverless functions
   app.post("/api/theory-videos/upload", requireTeacherAuth, (req, res, next) => {
-    videoUploadMiddleware.single("video")(req, res, (err: any) => {
+    if (process.env.VERCEL === "1") {
+      return res.status(400).json({
+        error: "Tải tệp video trực tiếp qua serverless functions không được hỗ trợ trên Vercel để tránh lỗi HTTP 413 Payload Too Large / 500 EROFS. Vui lòng sử dụng Direct Upload tới Vercel Blob qua /api/theory-videos/blob-upload.",
+        code: "USE_DIRECT_UPLOAD"
+      });
+    }
+
+    (videoUploadMiddleware.single("video") as any)(req, res, (err: any) => {
       if (err) {
         console.error("[UPLOAD] Video upload error:", err);
         return res.status(400).json({ error: "Lỗi tải video", message: err.message || "Tệp không hợp lệ" });
@@ -477,9 +494,9 @@ app.get("/api/health", (_req, res) => {
       const relativeUrl = `/uploads/teacher/${uid}/${videoId}/${req.file.filename}`;
       const storagePath = `teacher/${uid}/${videoId}/${req.file.filename}`;
 
-      // Backward-compatible fallback in /uploads/videos/
+      // Backward-compatible fallback in videos directory
       try {
-        const fallbackDir = path.join(process.cwd(), "uploads", "videos");
+        const fallbackDir = storagePaths.VIDEOS_UPLOAD_DIR;
         if (!fs.existsSync(fallbackDir)) {
           fs.mkdirSync(fallbackDir, { recursive: true });
         }
@@ -488,7 +505,7 @@ app.get("/api/health", (_req, res) => {
           fs.copyFileSync(req.file.path, fallbackPath);
         }
       } catch (copyErr) {
-        console.warn("[UPLOAD] Fallback copy to /uploads/videos/ skipped:", copyErr);
+        console.warn("[UPLOAD] Fallback copy to videos dir skipped:", copyErr);
       }
 
       console.log(`[UPLOAD] Video file saved to TEACHER MEDIA Storage: ${storagePath} (${req.file.size} bytes)`);
@@ -507,20 +524,29 @@ app.get("/api/health", (_req, res) => {
   });
 
   // Vercel Blob Direct Client Upload Route (Teacher action ONLY)
-  // Bypasses 4.5MB Vercel serverless request body limits for large video files (50MB - 500MB+)
+  // Bypasses 4.5MB Vercel serverless request body limits for large video files (5MB, 10MB, 20MB, 50MB, 100MB+)
   // Client browser uploads directly to Vercel Blob Storage - video file NEVER passes through Vercel Functions
   app.post("/api/theory-videos/blob-upload", async (req, res) => {
     try {
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         return res.status(503).json({
-          error: "Vercel Blob Storage token is not configured (missing BLOB_READ_WRITE_TOKEN). Fallback to safe chunked upload.",
-          fallback: true
+          error: "Vercel Blob Storage token is not configured (missing BLOB_READ_WRITE_TOKEN). Vui lòng thêm biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Dashboard để kích hoạt tính năng Direct Object Storage Upload cho video bài học.",
+          code: "BLOB_NOT_CONFIGURED"
         });
       }
 
-      const user = getAuthenticatedUser(req);
-      if (!user || user.role !== "teacher") {
-        return res.status(401).json({ error: "Unauthorized: Chỉ giáo viên mới có quyền tải lên video bài học." });
+      const bodyType = req.body?.type;
+
+      // When generating client token, strictly authenticate teacher
+      let teacherUser = null;
+      if (bodyType === "blob.generate-client-token") {
+        teacherUser = getAuthenticatedUser(req);
+        if (!teacherUser || teacherUser.role !== "teacher") {
+          return res.status(401).json({
+            error: "Unauthorized: Chỉ giáo viên mới có quyền tạo token ủy quyền tải lên video.",
+            code: "TEACHER_AUTH_REQUIRED"
+          });
+        }
       }
 
       const { handleUpload } = await import("@vercel/blob/client");
@@ -538,28 +564,30 @@ app.get("/api/health", (_req, res) => {
               "video/x-matroska",
               "image/jpeg",
               "image/png",
-              "image/webp",
-              "image/gif"
+              "image/webp"
             ],
-            maximumSizeInBytes: 500 * 1024 * 1024, // 500MB
+            maximumSizeInBytes: 500 * 1024 * 1024, // 500MB (fully supports 20MB, 30MB, 50MB, 100MB)
+            addRandomSuffix: true,
             tokenPayload: JSON.stringify({
-              userId: user.userId,
-              username: user.username,
+              userId: teacherUser?.userId || "usr-teacher-001",
+              username: teacherUser?.username || "teacher",
               pathname,
               clientPayload,
               multipart
             })
           };
-        },
-        onUploadCompleted: async ({ blob, tokenPayload }) => {
-          console.log("[BLOB] Direct client upload completed successfully:", blob.url, "Payload:", tokenPayload);
         }
+        // Note: onUploadCompleted callback is omitted intentionally.
+        // The client receives the uploaded blob URL directly from upload() and persists metadata via /create-and-assign.
       });
 
       return res.json(jsonResponse);
     } catch (err: any) {
       console.error("[API] Blob upload token error:", err);
-      return res.status(400).json({ error: err.message });
+      return res.status(err.status || 500).json({
+        error: err.message || "Lỗi xử lý tạo token tải lên Blob",
+        code: "BLOB_TOKEN_ERROR"
+      });
     }
   });
 
@@ -592,9 +620,16 @@ app.get("/api/health", (_req, res) => {
   app.post(
     "/api/theory-videos/chunk-upload",
     requireTeacherAuth,
-    chunkUploadMiddleware.single("chunk"),
+    (chunkUploadMiddleware.single("chunk") as any),
     async (req, res) => {
       try {
+        if (process.env.VERCEL === "1") {
+          return res.status(400).json({
+            error: "Môi trường Vercel Serverless không hỗ trợ lưu trữ tệp cục bộ. Vui lòng cấu hình Vercel Blob để sử dụng Direct Object Storage Upload.",
+            code: "SERVERLESS_STORAGE_REQUIRED"
+          });
+        }
+
         if (!req.file) {
           return res.status(400).json({ error: "Không tìm thấy dữ liệu phân mảnh video (chunk)" });
         }
@@ -605,7 +640,7 @@ app.get("/api/health", (_req, res) => {
         const ext = path.extname(originalName).toLowerCase() || ".mp4";
         const sanitizedBase = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
 
-        const tempDir = path.join(process.cwd(), "uploads", "temp");
+        const tempDir = path.join(storagePaths.UPLOADS_DIR, "temp");
         if (!fs.existsSync(tempDir)) {
           fs.mkdirSync(tempDir, { recursive: true });
         }
@@ -616,7 +651,7 @@ app.get("/api/health", (_req, res) => {
 
         // Check if this was the last chunk
         if (chunkIndex >= totalChunks - 1) {
-          const videosDir = path.join(process.cwd(), "uploads", "videos");
+          const videosDir = storagePaths.VIDEOS_UPLOAD_DIR;
           if (!fs.existsSync(videosDir)) {
             fs.mkdirSync(videosDir, { recursive: true });
           }
@@ -656,26 +691,59 @@ app.get("/api/health", (_req, res) => {
   // Request size is purely JSON (< 2KB), completely bypassing 413 Payload Too Large
   app.post("/api/theory-videos/create-and-assign", requireTeacherAuth, (req, res) => {
     try {
-      const { shape, videoUrl, title, description, fileName, fileSize, mimeType, duration, durationSeconds } = req.body;
-      if (!shape || !videoUrl) {
-        return res.status(400).json({ error: "Thiếu thông tin hình học hoặc đường dẫn video" });
+      const {
+        shape,
+        shapeType,
+        videoUrl,
+        title,
+        description,
+        fileName,
+        originalName,
+        fileSize,
+        size,
+        mimeType,
+        contentType,
+        duration,
+        durationSeconds,
+        storagePath,
+        fileId
+      } = req.body;
+
+      const effectiveShape = (shape || shapeType || "cylinder").toLowerCase() as "cylinder" | "cone" | "sphere";
+      if (!["cylinder", "cone", "sphere"].includes(effectiveShape) || !videoUrl) {
+        return res.status(400).json({ error: "Thiếu thông tin hình học hoặc đường dẫn video hợp lệ" });
       }
 
       const user = (req as any).user;
-      const topic = shape === "cylinder" ? "CYLINDER" : shape === "cone" ? "CONE" : "SPHERE";
-      const shapeNameVn = shape === "cylinder" ? "Hình Trụ" : shape === "cone" ? "Hình Nón" : "Hình Cầu";
+      const topic = effectiveShape === "cylinder" ? "CYLINDER" : effectiveShape === "cone" ? "CONE" : "SPHERE";
+      const shapeNameVn = effectiveShape === "cylinder" ? "Hình Trụ" : effectiveShape === "cone" ? "Hình Nón" : "Hình Cầu";
+
+      const resolvedStoragePath = storagePath || (videoUrl.startsWith("http") ? videoUrl : `teacher/${user?.userId || "usr-teacher-001"}/videos/${path.basename(videoUrl)}`);
+      const resolvedFileId = fileId || `blob_${Date.now()}`;
+      const resolvedFileName = fileName || originalName || path.basename(videoUrl);
+      const resolvedSize = Number(fileSize || size || 0);
+      const resolvedMime = mimeType || contentType || "video/mp4";
 
       const newVideo = PersistentTheoryVideoStorage.createVideo({
         title: title || `Video bài học ${shapeNameVn}`,
         description: description || `Video bài giảng hình học trực quan cho ${shapeNameVn}`,
-        shape,
+        shape: effectiveShape,
+        shapeType: effectiveShape,
+        lessonId: `lesson-${effectiveShape}`,
+        sectionId: "THEORY",
         topic,
         section: "THEORY",
         videoUrl,
+        downloadURL: videoUrl,
         url: videoUrl,
-        fileName: fileName || path.basename(videoUrl),
-        fileSize: fileSize || 0,
-        mimeType: mimeType || "video/mp4",
+        storagePath: resolvedStoragePath,
+        fileId: resolvedFileId,
+        fileName: resolvedFileName,
+        originalName: resolvedFileName,
+        fileSize: resolvedSize,
+        size: resolvedSize,
+        mimeType: resolvedMime,
+        contentType: resolvedMime,
         duration: duration || "00:15",
         durationSeconds: Number(durationSeconds) || 15,
         order: PersistentTheoryVideoStorage.getAllVideos().length + 1,
@@ -684,16 +752,17 @@ app.get("/api/health", (_req, res) => {
         uploadStatus: "ready",
         authorName: user?.username === "hieu1say" ? "ThS. Trần Ngọc Hiếu" : (user?.username || "Giáo viên Toán"),
         createdBy: user?.username === "hieu1say" ? "ThS. Trần Ngọc Hiếu" : (user?.username || "Giáo viên Toán"),
-        authorId: user?.userId || "usr-teacher-001"
+        authorId: user?.userId || "usr-teacher-001",
+        ownerId: user?.userId || "usr-teacher-001"
       });
 
-      const assignments = PersistentTheoryVideoStorage.assignVideoToShape(shape, newVideo.id);
+      const assignments = PersistentTheoryVideoStorage.assignVideoToShape(effectiveShape, newVideo.id);
 
       res.json({
         success: true,
         video: newVideo,
         assignments,
-        message: `Đã lưu và gán thành công video bài giảng cho ${shapeNameVn}!`
+        message: `Đã lưu metadata và gán thành công video bài giảng cho ${shapeNameVn}!`
       });
     } catch (err: any) {
       console.error("[API] Error in create-and-assign:", err);
@@ -704,9 +773,11 @@ app.get("/api/health", (_req, res) => {
   // GET Video Storage Architecture Configuration
   app.get("/api/theory-videos/storage-config", (_req, res) => {
     const isBlobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+    const isServerless = process.env.VERCEL === "1";
     res.json({
-      provider: isBlobConfigured ? "vercel-blob" : "chunked-disk",
+      provider: isBlobConfigured ? "vercel-blob" : isServerless ? "unconfigured-blob" : "local-disk",
       blobConfigured: isBlobConfigured,
+      isServerless,
       maxSizeBytes: 500 * 1024 * 1024,
       allowedMimeTypes: [
         "video/mp4",
@@ -723,7 +794,7 @@ app.get("/api/health", (_req, res) => {
 
   // Thumbnail Image Upload Endpoint (Teacher action ONLY)
   app.post("/api/theory-videos/upload-thumbnail", requireTeacherAuth, (req, res) => {
-    thumbnailUploadMiddleware.single("thumbnail")(req, res, (err: any) => {
+    (thumbnailUploadMiddleware.single("thumbnail") as any)(req, res, (err: any) => {
       if (err) {
         return res.status(400).json({ error: "Lỗi tải ảnh thumbnail", message: err.message });
       }
@@ -937,7 +1008,7 @@ app.get("/api/health", (_req, res) => {
 
   // POST Upload and Assign Video directly to a Shape (Teacher action ONLY)
   app.post("/api/theory-videos/upload-and-assign", requireTeacherAuth, (req, res) => {
-    videoUploadMiddleware.single("video")(req, res, (err: any) => {
+    (videoUploadMiddleware.single("video") as any)(req, res, (err: any) => {
       if (err) {
         return res.status(400).json({ error: "Lỗi tải video", message: err.message });
       }
@@ -960,9 +1031,9 @@ app.get("/api/health", (_req, res) => {
         const relativeUrl = `/uploads/teacher/${uid}/${videoId}/${req.file.filename}`;
         const storagePath = `teacher/${uid}/${videoId}/${req.file.filename}`;
 
-        // Also ensure a copy in /uploads/videos/
+        // Also ensure a copy in videos directory
         try {
-          const uploadsVideosDir = path.join(process.cwd(), "uploads", "videos");
+          const uploadsVideosDir = storagePaths.VIDEOS_UPLOAD_DIR;
           if (!fs.existsSync(uploadsVideosDir)) fs.mkdirSync(uploadsVideosDir, { recursive: true });
           const copyDest = path.join(uploadsVideosDir, req.file.filename);
           if (!fs.existsSync(copyDest)) {
@@ -1122,7 +1193,7 @@ app.get("/api/health", (_req, res) => {
       }
       if (!localPath && video.sourceFile) {
         const p1 = path.join(process.cwd(), "public", "assets", "videos", video.sourceFile);
-        const p2 = path.join(process.cwd(), "uploads", "videos", video.sourceFile);
+        const p2 = path.join(storagePaths.VIDEOS_UPLOAD_DIR, video.sourceFile);
         const p3 = path.join(process.cwd(), "public", "assets", "videos", (video.topic || "").toLowerCase(), video.sourceFile);
         const p4 = path.join(process.cwd(), "public", "system-media", (video.topic || "").toLowerCase(), video.sourceFile);
         if (fs.existsSync(p1)) localPath = p1;
@@ -1142,11 +1213,11 @@ app.get("/api/health", (_req, res) => {
         const p = path.join(process.cwd(), video.videoUrl.replace(/^\//, ""));
         if (fs.existsSync(p)) localPath = p;
       } else if (!localPath && video.storagePath) {
-        const pTeacher = path.join(process.cwd(), "uploads", video.storagePath);
+        const pTeacher = path.join(storagePaths.UPLOADS_DIR, video.storagePath);
         const pSys = path.join(process.cwd(), "public", "assets", "videos", video.storagePath);
         const pSysMedia = path.join(process.cwd(), "public", "system-media", video.storagePath);
         const baseName = path.basename(video.storagePath);
-        const p1 = path.join(process.cwd(), "uploads", "videos", baseName);
+        const p1 = path.join(storagePaths.VIDEOS_UPLOAD_DIR, baseName);
         const p2 = path.join(process.cwd(), "public", "assets", "videos", baseName);
         if (fs.existsSync(pTeacher)) localPath = pTeacher;
         else if (fs.existsSync(pSys)) localPath = pSys;
@@ -1155,13 +1226,33 @@ app.get("/api/health", (_req, res) => {
         else if (fs.existsSync(p2)) localPath = p2;
       }
 
-      // If videoUrl is an external URL (e.g. commondatastorage), check if it's dead
-      if (!localPath && video.videoUrl.startsWith("http")) {
-        return res.status(404).json({
-          success: false,
-          code: "storage/object-not-found",
-          error: "Video không tồn tại trong kho lưu trữ.",
-          adminMessage: "Không tìm thấy file video trong kho lưu trữ (URL ngoại tuyến hoặc không truy cập được)."
+      // If videoUrl is a remote Object Storage URL (e.g. Vercel Blob or direct HTTPS), return verified remote reference
+      if (!localPath && video.videoUrl && video.videoUrl.startsWith("http")) {
+        const mimeType = video.mimeType || "video/mp4";
+        const sizeBytes = video.fileSize || video.size || 0;
+        console.log(`[VIDEO DEBUG]
+videoId: ${video.id}
+storagePath: ${video.storagePath || video.videoUrl}
+downloadURL: ${video.videoUrl}`);
+
+        return res.json({
+          success: true,
+          videoId: video.id,
+          title: video.title,
+          topic: video.topic,
+          sourceFile: video.sourceFile || video.fileName || path.basename(video.videoUrl),
+          originalFileName: video.originalFileName || video.fileName || path.basename(video.videoUrl),
+          sourceType: video.sourceType || "TEACHER_PROVIDED",
+          lessonId: video.lessonId,
+          storagePath: video.storagePath || video.videoUrl,
+          downloadURL: video.videoUrl,
+          sizeBytes: sizeBytes,
+          mimeType: mimeType,
+          durationSeconds: video.durationSeconds || 15,
+          published: video.status === "PUBLISHED",
+          citations: video.citations || [],
+          chapters: video.chapters || [],
+          uploadStatus: video.uploadStatus || "ready"
         });
       }
 
@@ -1234,7 +1325,7 @@ downloadURL: ${video.videoUrl}`);
       let validUrl = video.videoUrl;
       const baseName = path.basename(video.videoUrl);
       const publicAssetPath = path.join(process.cwd(), "public", "assets", "videos", baseName);
-      const uploadAssetPath = path.join(process.cwd(), "uploads", "videos", baseName);
+      const uploadAssetPath = path.join(storagePaths.VIDEOS_UPLOAD_DIR, baseName);
 
       if (fs.existsSync(publicAssetPath)) {
         validUrl = `/assets/videos/${baseName}`;

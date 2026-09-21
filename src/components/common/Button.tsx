@@ -59,35 +59,35 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     // 1. Shapes
     const shapeClasses: Record<ButtonShape, string> = {
-      rounded: 'rounded',
+      rounded: 'rounded-lg',
       pill: 'rounded-full',
       circle: 'rounded-full p-2 aspect-square',
-      square: 'rounded p-2 aspect-square'
+      square: 'rounded-lg p-2 aspect-square'
     };
 
-    // 2. Sizes (with 2x horizontal padding rule)
+    // 2. Sizes (with 2x horizontal padding rule & min 44px mobile height accessibility)
     const sizeClasses: Record<ButtonSize, string> = {
-      xs: 'text-xs py-1.5 px-3 gap-1.5 font-black',
-      sm: 'text-xs py-2 px-4 gap-2 font-black',
-      md: 'text-sm py-2.5 px-5 gap-2 font-black',
-      lg: 'text-base py-3 px-6 gap-2.5 font-black'
+      xs: 'text-xs py-1 px-2.5 gap-1.5 font-semibold min-h-[32px]',
+      sm: 'text-xs py-1.5 px-3.5 gap-1.5 font-semibold min-h-[36px]',
+      md: 'text-xs sm:text-sm py-2 px-4 gap-2 font-semibold min-h-[44px]',
+      lg: 'text-sm sm:text-base py-2.5 px-5 gap-2.5 font-bold min-h-[48px]'
     };
 
-    // 3. Variants (Neobrutalism: border 2-3px black, hard shadow, bold flat color)
+    // 3. Variants (Calm, Precise, Educational Inspo-Driven System)
     const variantClasses: Record<ButtonVariant, string> = {
-      primary: 'bg-[#FF6B00] text-white hover:bg-[#E55F00] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      cylinder: 'bg-[#FF6B00] text-white hover:bg-[#E55F00] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      sphere: 'bg-[#00D1FF] text-black hover:bg-[#00B8E6] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      cone: 'bg-[#B7F000] text-black hover:bg-[#A0D400] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      ai: 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      achievement: 'bg-[#FFD23F] text-black hover:bg-[#E5BC35] border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      secondary: 'bg-white hover:bg-[#FFF9E6] text-black border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      outline: 'bg-white hover:bg-[#FFF9E6] text-black border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      ghost: 'bg-transparent hover:bg-black/5 text-black active:scale-[0.98]',
-      subtle: 'bg-[#FFF9E6] hover:bg-[#FFF0B3] text-black border border-black active:translate-x-[1px] active:translate-y-[1px]',
-      danger: 'bg-[#FF4F81] hover:bg-[#E6396B] text-white border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      success: 'bg-[#B7F000] hover:bg-[#A0D400] text-black border-2 border-black shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none',
-      white: 'bg-white text-slate-900 hover:bg-slate-50 border border-slate-200 shadow-sm'
+      primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs border border-blue-600 active:scale-[0.98]',
+      cylinder: 'bg-teal-600 hover:bg-teal-700 text-white shadow-xs border border-teal-600 active:scale-[0.98]',
+      sphere: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs border border-indigo-600 active:scale-[0.98]',
+      cone: 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs border border-blue-600 active:scale-[0.98]',
+      ai: 'bg-orange-600 hover:bg-orange-700 text-white shadow-xs border border-orange-600 active:scale-[0.98]',
+      achievement: 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs border border-amber-600 active:scale-[0.98]',
+      secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 active:scale-[0.98]',
+      outline: 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-2xs active:scale-[0.98]',
+      ghost: 'bg-transparent hover:bg-slate-100 text-slate-700 active:scale-[0.98]',
+      subtle: 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 active:scale-[0.98]',
+      danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs border border-rose-600 active:scale-[0.98]',
+      success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600 active:scale-[0.98]',
+      white: 'bg-white text-slate-900 hover:bg-slate-50 border border-slate-200 shadow-2xs'
     };
 
     return (

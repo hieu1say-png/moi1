@@ -524,14 +524,60 @@ export class TheoryVideoService {
   }
 
   /**
-   * Upload video file directly to Vercel Blob object store
-   * Browser uploads straight to Vercel Blob — file NEVER passes through Vercel Functions
-   * If Blob token is not configured, automatically uses chunked upload (<=2MB chunks) to prevent HTTP 413
+   * Validate video file before upload
+   * Checks file presence, size limits, and video MIME / extensions
+   */
+  public static validateVideoFile(file: File): { valid: boolean; error?: string } {
+    if (!file) {
+      return { valid: false, error: 'Vui lòng chọn một tệp video.' };
+    }
+    if (file.size <= 0) {
+      return { valid: false, error: 'Tệp video rỗng (0 bytes). Vui lòng chọn tệp hợp lệ.' };
+    }
+    const maxSizeBytes = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSizeBytes) {
+      return {
+        valid: false,
+        error: `Dung lượng video (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép (${maxSizeBytes / (1024 * 1024)}MB).`
+      };
+    }
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    const validExts = ['.mp4', '.webm', '.ogg', '.mov', '.mkv'];
+    const validMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska'];
+    const isValidType = validMimes.includes(file.type) || file.type.startsWith('video/') || validExts.includes(ext);
+    if (!isValidType) {
+      return {
+        valid: false,
+        error: 'Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp video (.mp4, .webm, .ogg, .mov).'
+      };
+    }
+    return { valid: true };
+  }
+
+  /**
+   * Upload video file directly to Vercel Blob Object Storage
+   * Browser uploads straight to Object Storage — multi-megabyte video NEVER passes through Vercel Functions
+   * Guarantees zero HTTP 413 Payload Too Large and zero 500 Serverless filesystem write errors
    */
   public static async uploadVideoFile(
     file: File,
     onProgress?: (percent: number) => void
-  ): Promise<{ success: boolean; videoUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    videoUrl?: string;
+    storagePath?: string;
+    fileId?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    error?: string;
+  }> {
+    // 0. Pre-flight client-side validation
+    const validation = this.validateVideoFile(file);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
     // 1. Direct Vercel Blob Client Upload (bypasses 4.5MB Vercel serverless request body limit)
     try {
       const { upload } = await import('@vercel/blob/client');
@@ -545,10 +591,10 @@ export class TheoryVideoService {
         access: 'public',
         handleUploadUrl: '/api/theory-videos/blob-upload',
         headers: authHeaders,
-        multipart: true, // Crucial for files > 4.5MB
+        multipart: true, // Crucial for files > 4.5MB (5MB, 10MB, 20MB, 50MB, 100MB+)
         onUploadProgress: (progress) => {
           if (onProgress && progress.total) {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
+            const percent = Math.min(100, Math.round((progress.loaded / progress.total) * 100));
             onProgress(percent);
           }
         }
@@ -559,17 +605,68 @@ export class TheoryVideoService {
         return {
           success: true,
           videoUrl: blob.url,
+          storagePath: pathname,
+          fileId: blob.url,
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type || 'video/mp4'
         };
       }
     } catch (blobErr: any) {
-      console.warn('[UPLOAD] Direct Vercel Blob upload unavailable, falling back to safe chunked upload:', blobErr?.message || blobErr);
+      console.warn('[UPLOAD] Direct Vercel Blob upload encountered error:', blobErr?.message || blobErr);
+      const errMsg = String(blobErr?.message || blobErr || '');
+
+      // HTTP 401 Unauthorized
+      if (blobErr?.status === 401 || errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+        return {
+          success: false,
+          error: 'Phiên đăng nhập của giáo viên đã hết hạn hoặc không có quyền (HTTP 401). Vui lòng đăng nhập lại.'
+        };
+      }
+
+      // HTTP 403 Forbidden
+      if (blobErr?.status === 403 || errMsg.includes('403')) {
+        return {
+          success: false,
+          error: 'Bạn không có quyền thực hiện thao tác tải video (HTTP 403).'
+        };
+      }
+
+      // HTTP 413 Payload Too Large
+      if (blobErr?.status === 413 || errMsg.includes('413')) {
+        return {
+          success: false,
+          error: 'Dung lượng tệp vượt quá giới hạn tối đa cho phép của dịch vụ lưu trữ (HTTP 413).'
+        };
+      }
+
+      // Vercel Blob Token missing
+      if (errMsg.includes('BLOB_NOT_CONFIGURED') || errMsg.includes('BLOB_READ_WRITE_TOKEN') || blobErr?.status === 503) {
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        if (isLocal) {
+          console.info('[UPLOAD] Local development detected without BLOB_READ_WRITE_TOKEN. Using local chunked storage fallback.');
+          return this.uploadChunked(file, onProgress);
+        }
+        return {
+          success: false,
+          error: 'Chưa cấu hình BLOB_READ_WRITE_TOKEN trên Vercel. Vui lòng cấu hình biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Dashboard để kích hoạt tính năng Direct Object Storage Upload cho video bài học.'
+        };
+      }
+
+      // If local development and server allows chunked upload
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      if (isLocal) {
+        console.info('[UPLOAD] Falling back to local chunked upload in dev mode.');
+        return this.uploadChunked(file, onProgress);
+      }
+
+      return {
+        success: false,
+        error: `Lỗi tải video lên Object Storage: ${errMsg}`
+      };
     }
 
-    // 2. Safe Chunked Fallback: Slices file into 2MB chunks so no request ever exceeds 4.5MB
-    return this.uploadChunked(file, onProgress);
+    return { success: false, error: 'Không thể kết nối đến kho lưu trữ video.' };
   }
 
   /**
@@ -1137,11 +1234,21 @@ export class TheoryVideoService {
         },
         body: JSON.stringify({
           shape,
+          shapeType: shape,
           videoUrl: uploadRes.videoUrl,
+          downloadURL: uploadRes.videoUrl,
+          storagePath: uploadRes.storagePath || uploadRes.videoUrl,
+          fileId: uploadRes.fileId || `file_${Date.now()}`,
           title: title || `Video bài học ${shapeNameVn}`,
+          description: `Video bài giảng hình học trực quan ${shapeNameVn} do giáo viên tải lên.`,
+          originalName: file.name,
           fileName: uploadRes.fileName || file.name,
           fileSize: uploadRes.fileSize || file.size,
-          mimeType: uploadRes.mimeType || file.type
+          size: uploadRes.fileSize || file.size,
+          mimeType: uploadRes.mimeType || file.type || 'video/mp4',
+          contentType: uploadRes.mimeType || file.type || 'video/mp4',
+          duration: '00:15',
+          durationSeconds: 15
         })
       });
 

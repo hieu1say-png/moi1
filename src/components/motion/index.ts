@@ -1,3 +1,14 @@
 export { GeometricParticles } from './GeometricParticles';
 export { StaggerReveal } from './StaggerReveal';
 export { TiltCard } from './TiltCard';
+export { CustomDualCursor } from './CustomDualCursor';
+export { PerspectiveTiltGrid } from './PerspectiveTiltGrid';
+export { FloatingMathStickers } from './FloatingMathStickers';
+export { DynamicTypewriter } from './DynamicTypewriter';
+export { SubtleAmbience } from './SubtleAmbience';
+export { FocusModeProvider, useFocusMode } from './FocusModeProvider';
+export { AppleExperienceProvider } from './AppleExperienceProvider';
+export { ScaloraGlassCard } from './ScaloraGlassCard';
+export { HandDrawnArrowCTA } from './HandDrawnArrowCTA';
+export { MathLabGlassWorkbench } from './MathLabGlassWorkbench';
+export { FocusClassBar } from './FocusClassBar';

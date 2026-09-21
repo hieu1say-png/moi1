@@ -222,116 +222,75 @@ export class VideoService {
 
     this.activeControllers.set(uploadId, stateRecord);
 
-    const startUpload = () => {
-      const xhr = new XMLHttpRequest();
-      stateRecord.xhr = xhr;
+    const startUpload = async () => {
       stateRecord.currentProgress.state = 'running';
 
-      const formData = new FormData();
-      formData.append('video', file);
-      if (metadata.topic) formData.append('topic', metadata.topic);
-      if (metadata.lessonId) formData.append('lessonId', metadata.lessonId);
-      if (metadata.title) formData.append('title', metadata.title);
-
-      xhr.open('POST', '/api/theory-videos/upload', true);
-      const authHeaders = TheoryVideoService.getAuthHeaders(false, 'teacher');
-      Object.entries(authHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-
-      xhr.upload.onprogress = (e) => {
-        if (stateRecord.currentProgress.state !== 'running') return;
-        if (e.lengthComputable) {
-          const percentage = Math.round((e.loaded / e.total) * 100);
+      try {
+        const uploadRes = await TheoryVideoService.uploadVideoFile(file, (percent) => {
+          if (stateRecord.currentProgress.state !== 'running') return;
           stateRecord.currentProgress = {
-            bytesTransferred: e.loaded,
-            totalBytes: e.total,
-            percentage,
+            bytesTransferred: Math.round((file.size * percent) / 100),
+            totalBytes: file.size,
+            percentage: percent,
             state: 'running'
           };
           onProgress(stateRecord.currentProgress);
-        }
-      };
+        });
 
-      xhr.onload = async () => {
-        if (stateRecord.currentProgress.state === 'canceled') return;
+        if ((stateRecord.currentProgress.state as string) === 'canceled') return;
 
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const res = JSON.parse(xhr.responseText);
-            if (res.success && res.videoUrl) {
-              stateRecord.currentProgress = {
-                bytesTransferred: file.size,
-                totalBytes: file.size,
-                percentage: 100,
-                state: 'success'
-              };
-              onProgress(stateRecord.currentProgress);
+        if (uploadRes.success && uploadRes.videoUrl) {
+          stateRecord.currentProgress = {
+            bytesTransferred: file.size,
+            totalBytes: file.size,
+            percentage: 100,
+            state: 'success'
+          };
+          onProgress(stateRecord.currentProgress);
 
-              // Construct standard VideoAsset
-              const finalAsset: VideoAsset = {
-                id: res.id || `video-${Date.now()}`,
-                title: metadata.title || file.name.replace(/\.[^/.]+$/, ''),
-                description: metadata.description || '',
-                topic: (metadata.topic as GeometricTopicType) || 'sphere',
-                lessonId: metadata.lessonId || `${metadata.topic || 'sphere'}-recognition`,
-                lessonTitle: metadata.lessonTitle || '',
-                section: metadata.section || 'THEORY',
-                storagePath: `videos/${metadata.uploadedBy || 'teacher_001'}/${res.id || Date.now()}/original/${file.name}`,
-                downloadURL: res.videoUrl,
-                fileName: file.name,
-                mimeType: file.type || 'video/mp4',
-                sizeBytes: file.size,
-                durationSeconds: metadata.durationSeconds ?? 15,
-                thumbnailURL: metadata.thumbnailURL || null,
-                uploadedBy: metadata.uploadedBy || 'teacher_001',
-                uploadedByName: metadata.uploadedByName || 'ThS. Trần Ngọc Hiếu',
-                published: metadata.published ?? true,
-                visibility: metadata.visibility || 'students',
-                order: metadata.order ?? 1,
-                uploadStatus: 'ready',
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-              };
+          // Construct standard VideoAsset
+          const finalAsset: VideoAsset = {
+            id: `video-${Date.now()}`,
+            title: metadata.title || file.name.replace(/\.[^/.]+$/, ''),
+            description: metadata.description || '',
+            topic: (metadata.topic as GeometricTopicType) || 'sphere',
+            lessonId: metadata.lessonId || `${metadata.topic || 'sphere'}-recognition`,
+            lessonTitle: metadata.lessonTitle || '',
+            section: metadata.section || 'THEORY',
+            storagePath: uploadRes.storagePath || uploadRes.videoUrl,
+            downloadURL: uploadRes.videoUrl,
+            fileName: uploadRes.fileName || file.name,
+            mimeType: uploadRes.mimeType || file.type || 'video/mp4',
+            sizeBytes: uploadRes.fileSize || file.size,
+            durationSeconds: metadata.durationSeconds ?? 15,
+            thumbnailURL: metadata.thumbnailURL || null,
+            uploadedBy: metadata.uploadedBy || 'teacher_001',
+            uploadedByName: metadata.uploadedByName || 'ThS. Trần Ngọc Hiếu',
+            published: metadata.published ?? true,
+            visibility: metadata.visibility || 'students',
+            order: metadata.order ?? 1,
+            uploadStatus: 'ready',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
 
-              // Persist metadata to server
-              await VideoService.createVideoMetadata(finalAsset).catch(() => {});
-              onComplete(finalAsset);
-              return;
-            }
-          } catch (e: any) {
-            const err = VideoService.formatErrorMessage(e.message);
-            stateRecord.currentProgress.state = 'error';
-            stateRecord.currentProgress.errorMessage = err;
-            onError(err);
-            return;
-          }
+          // Persist metadata to server
+          await VideoService.createVideoMetadata(finalAsset).catch(() => {});
+          onComplete(finalAsset);
+          return;
         }
 
-        let errMsg = 'Lỗi lưu video lên máy chủ';
-        try {
-          const errRes = JSON.parse(xhr.responseText);
-          errMsg = errRes.message || errRes.error || errMsg;
-        } catch {
-          // fallback
-        }
-        const formatted = VideoService.formatErrorMessage(errMsg);
+        const errMsg = VideoService.formatErrorMessage(uploadRes.error || 'Lỗi lưu video');
         stateRecord.currentProgress.state = 'error';
-        stateRecord.currentProgress.errorMessage = formatted;
-        onError(formatted);
-      };
-
-      xhr.onerror = () => {
+        stateRecord.currentProgress.errorMessage = errMsg;
+        onError(errMsg);
+      } catch (err: any) {
         if (stateRecord.currentProgress.state === 'canceled') return;
-        const netErr = VideoService.formatErrorMessage('network');
+        const errMsg = VideoService.formatErrorMessage(err.message || 'Lỗi kết nối khi tải video');
         stateRecord.currentProgress.state = 'error';
-        stateRecord.currentProgress.errorMessage = netErr;
-        onError(netErr);
-      };
-
-      xhr.onabort = () => {
-        // handled in pause/cancel
-      };
-
-      xhr.send(formData);
+        stateRecord.currentProgress.errorMessage = errMsg;
+        onError(errMsg);
+      }
     };
 
     startUpload();

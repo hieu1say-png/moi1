@@ -1057,19 +1057,19 @@ export const TheoryView: React.FC = () => {
             </div>
           ) : showTeacherVideoControls ? (
             /* Teacher Empty State Card (Prompt to Upload/Assign) */
-            <div className="max-w-4xl mx-auto bg-gradient-to-b from-stone-50 to-[#FFFDF8] border-2 border-dashed border-[#D5C9BD] rounded-2xl p-8 text-center space-y-4 shadow-2xs">
-              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
-                <FileVideo className="w-7 h-7" />
+            <div className="max-w-4xl mx-auto bg-gradient-to-b from-stone-50 to-[#FFFDF8] border border-[#D5C9BD] rounded-2xl p-6 sm:p-8 text-center space-y-4 shadow-2xs">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <FileVideo className="w-6 h-6" />
               </div>
               <div className="space-y-1.5 max-w-md mx-auto">
-                <h4 className="font-serif text-base font-bold text-stone-800">
-                  Chưa gán video bài học cho {detailedData.vietnameseName}
+                <h4 className="font-serif text-base sm:text-lg font-bold text-stone-800">
+                  Video bài học chưa được giáo viên cung cấp.
                 </h4>
                 <p className="text-xs text-stone-600 leading-relaxed">
-                  <strong>Chính sách Không Video Ảo:</strong> Học sinh hiện <strong>hoàn toàn không nhìn thấy</strong> khung video này. Thầy/Cô vui lòng tải tệp video thực tế (MP4/WebM) hoặc chọn từ kho bài giảng để học sinh học tập.
+                  <strong>Chính sách Zero-Fake Video:</strong> Chưa có tệp video thực tế cho chuyên đề {detailedData.vietnameseName}. Thầy/Cô vui lòng tải tệp video MP4 hoặc chọn từ kho bài giảng để học sinh học tập.
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <Button
                   size="md"
                   variant="primary"
@@ -1078,7 +1078,7 @@ export const TheoryView: React.FC = () => {
                   leftIcon={<Upload className="w-4 h-4" />}
                   className="font-bold shadow-xs"
                 >
-                  Tải lên video thật (.mp4, .webm)
+                  Tải lên video thật (.mp4)
                 </Button>
                 <Button
                   size="md"
@@ -1092,7 +1092,22 @@ export const TheoryView: React.FC = () => {
                 </Button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            /* Student Empty State Notification */
+            <div className="max-w-4xl mx-auto bg-[#FFFDF8] border border-[#E5DCCF] rounded-2xl p-6 sm:p-8 text-center space-y-2.5 shadow-2xs">
+              <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+                <Film className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h4 className="font-serif text-base font-bold text-[#3A302B]">
+                  Video bài học chưa được giáo viên cung cấp.
+                </h4>
+                <p className="text-xs text-[#766A61] leading-relaxed">
+                  Chuyên đề {detailedData.vietnameseName} chưa có video bài học từ giáo viên bộ môn. Học sinh hãy tìm hiểu qua các mục lý thuyết tương tác và phòng thí nghiệm 3D bên dưới.
+                </p>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

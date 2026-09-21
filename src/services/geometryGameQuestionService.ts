@@ -13,12 +13,9 @@
  * 5. PRACTICE_QUESTIONS (Geometry Lab core curriculum exercises)
  */
 
-import { questionBank } from '../data/questionBank1000';
 import { SOURCE_MCQ_QUESTIONS } from '../data/questionBank1000/sourceExactBank';
 import masterQuestionBankData from '../data/masterQuestionBank.json';
-import { TeacherService } from './teacherService';
 import { PRACTICE_QUESTIONS } from '../data/geometryData';
-import { MultipleChoiceExercise } from '../types/dataArchitecture';
 
 export interface GameQuestion {
   id: string;
@@ -148,22 +145,6 @@ function normalizeFromPracticeQuestion(pq: any): GameQuestion | null {
   };
 }
 
-function normalizeFromExercise(ex: any): GameQuestion | null {
-  if (!ex || ex.type !== 'multiple_choice' || !ex.options || ex.options.length !== 4) return null;
-  return {
-    id: ex.id,
-    type: 'mcq',
-    q: ex.question,
-    options: ex.options.map(cleanOptionText),
-    ans: ex.correctOptionIndex,
-    topic: ex.shapeId as any,
-    difficulty: ex.difficulty as any,
-    explanation: ex.explanation,
-    hint: ex.hint,
-    source: 'Teacher & Exercise Bank'
-  };
-}
-
 function normalizeFromSourceMCQ(smcq: any): GameQuestion | null {
   if (!smcq) return null;
   const rawOpts = smcq.interactiveVersion?.options || smcq.originalOptions;
@@ -278,63 +259,24 @@ class GeometryGameQuestionService {
     const seenIds = new Set<string>();
     const candidates: (GameQuestion | null)[] = [];
 
-    // 1. Source 1: Practice Questions (Geometry Lab SGK 9 practice)
+    // 1. Source 1: Practice Questions (Geometry Lab SGK 9 practice - Approved)
     for (const pq of PRACTICE_QUESTIONS) {
       candidates.push(normalizeFromPracticeQuestion(pq));
     }
 
-    // 2. Source 2: Teacher Service Questions (Mock + Custom in localStorage)
-    try {
-      const teacherExercises = TeacherService.getQuestionBank();
-      for (const ex of teacherExercises) {
-        if (ex.type === 'multiple_choice') {
-          candidates.push(normalizeFromExercise(ex));
-        }
-      }
-    } catch (e) {
-      console.warn('[GAME QUESTION BANK] Error reading teacher question bank:', e);
-    }
-
-    // 3. Source 3: Source Exact MCQ Questions
+    // 2. Source 2: Source Exact MCQ Questions (Official exam source - Approved)
     for (const smcq of SOURCE_MCQ_QUESTIONS) {
       candidates.push(normalizeFromSourceMCQ(smcq));
     }
 
-    // 4. Source 4: Master Question Bank JSON (73+ curated questions)
+    // 3. Source 3: Master Question Bank JSON (73+ verified & approved questions)
     if (Array.isArray(masterQuestionBankData)) {
       for (const mq of masterQuestionBankData) {
-        candidates.push(normalizeFromMasterJSON(mq));
-      }
-    }
-
-    // 5. Source 5: QuestionBankStore generated variants
-    try {
-      const generatedMCQ = questionBank.getVariantsByFilter({ questionType: 'MULTIPLE_CHOICE' });
-      for (const g of generatedMCQ) {
-        if (g.options && g.options.length === 4) {
-          const ansIdx = g.options.findIndex((opt: string) => opt.trim() === g.correctAnswer?.trim());
-          if (ansIdx >= 0) {
-            let topic: 'cylinder' | 'cone' | 'sphere' | 'mixed' = 'mixed';
-            if (g.topic === 'CYLINDER') topic = 'cylinder';
-            else if (g.topic === 'CONE') topic = 'cone';
-            else if (g.topic === 'SPHERE') topic = 'sphere';
-
-            candidates.push({
-              id: g.generatedId || (g as any).id,
-              type: 'mcq',
-              q: g.question,
-              options: g.options.map(cleanOptionText),
-              ans: ansIdx,
-              topic,
-              difficulty: 'medium',
-              explanation: Array.isArray(g.solution4Steps) ? g.solution4Steps.join(' ') : '',
-              source: 'QuestionBank1000'
-            });
-          }
+        const itemStatus = (mq as any).status;
+        if (!itemStatus || itemStatus === 'APPROVED' || itemStatus === 'VERIFIED_SOURCE' || itemStatus === 'ACTIVE') {
+          candidates.push(normalizeFromMasterJSON(mq));
         }
       }
-    } catch (e) {
-      console.warn('[GAME QUESTION BANK] Error reading questionBank variants:', e);
     }
 
     // Validate and deduplicate

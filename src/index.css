@@ -1,79 +1,79 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Times New Roman', Times, 'Tinos', serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: 'Times New Roman', Times, 'Tinos', serif;
 }
 
 @layer base {
   :root {
     /* =========================================================================
-       GEOMETRY LAB DESIGN TOKENS - GREEN & CREAM (#16A34A + #F8FAF5)
+       GEOMETRY LAB INSPO-DRIVEN DESIGN SYSTEM (CALM, PRECISE, EDUCATIONAL)
        ========================================================================= */
-    --neo-bg: #F8FAF5;
-    --neo-surface: #FFFFFF;
-    --neo-surface-alt: #F0FDF4;
-    --neo-black: #0F291E;
-    --neo-text: #0F291E;
-    --neo-text-muted: #334E40;
+    --color-bg: #F8FAFC;
+    --color-surface: #FFFFFF;
+    --color-surface-subtle: #F1F5F9;
+    --color-fg: #0F172A;
+    --color-text: #0F172A;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-muted: #475569;
+    --color-text-muted: #475569;
+    --color-border: #E2E8F0;
+    --color-border-subtle: #E2E8F0;
+    --color-border-hover: #CBD5E1;
 
-    /* Palette */
-    --neo-primary: #16A34A; /* Vibrant Forest Green */
-    --neo-primary-dark: #15803D;
-    --neo-primary-light: #DCFCE7;
-    --neo-yellow: #EAB308; /* Attention / Star Yellow */
-    --neo-lime: #84CC16; /* Fresh Lime */
-    --neo-pink: #EC4899; /* Accent Pink */
-    --neo-blue: #059669; /* Cylinder Emerald */
-    --neo-green: #16A34A; /* Success Green */
-    --neo-coral: #DC2626; /* Error / Danger Red */
-    --neo-purple: #047857; /* Royal Pine AI */
-    --neo-teal: #0D9488; /* Sphere Ocean Sage */
+    /* Semantic Primary: Academic Blue & Cyan Geometric Accent */
+    --color-primary: #1D4ED8;
+    --color-primary-hover: #1E40AF;
+    --color-primary-light: #EFF6FF;
+    --color-primary-foreground: #FFFFFF;
 
-    /* Token Aliases */
-    --color-primary: var(--neo-primary);
-    --color-primary-dark: var(--neo-primary-dark);
-    --color-primary-light: var(--neo-primary-light);
-    --color-background: var(--neo-bg);
-    --color-bg: var(--neo-bg);
-    --color-surface: var(--neo-surface);
-    --color-surface-soft: var(--neo-surface-alt);
-    --color-text: var(--neo-text);
-    --color-text-primary: #0F291E;
-    --color-text-secondary: #334E40;
-    --color-muted: #658473;
-    --color-text-muted: #658473;
-    --color-border: #E2EADF;
-    --color-border-subtle: #E2EADF;
+    --color-accent-geom: #0D9488;
+    --color-accent-geom-light: #F0FDFA;
+
+    /* Status Tokens */
+    --color-success: #15803D;
+    --color-success-light: #F0FDF4;
+    --color-warning: #B45309;
+    --color-warning-light: #FFFBEB;
+    --color-error: #B91C1C;
+    --color-error-light: #FEF2F2;
 
     /* Semantic Shapes */
-    --color-ai: #047857;
-    --color-ai-primary: #047857;
-    --color-cylinder: #059669;
-    --color-cylinder-primary: #059669;
-    --color-cone: #16A34A;
-    --color-cone-primary: #16A34A;
-    --color-sphere: #0D9488;
-    --color-sphere-primary: #0D9488;
-    --color-success: #16A34A;
-    --color-warning: var(--neo-yellow);
-    --color-error: var(--neo-coral);
+    --color-cylinder: #0D9488;
+    --color-cylinder-primary: #0D9488;
+    --color-cone: #1D4ED8;
+    --color-cone-primary: #1D4ED8;
+    --color-sphere: #4F46E5;
+    --color-sphere-primary: #4F46E5;
 
-    /* Dimensions & Soft Shadows */
-    --neo-border-width: 1px;
-    --neo-border: 1px solid #E2EADF;
-    --neo-shadow: 0 4px 12px rgba(15, 41, 30, 0.05);
-    --neo-shadow-sm: 0 2px 6px rgba(15, 41, 30, 0.04);
-    --neo-shadow-lg: 0 8px 24px rgba(15, 41, 30, 0.08);
-    --neo-shadow-xl: 0 16px 36px rgba(15, 41, 30, 0.12);
-    --neo-radius: 16px;
-    --neo-radius-sm: 12px;
-    --neo-radius-lg: 24px;
+    /* Backward compatibility aliases */
+    --neo-bg: var(--color-bg);
+    --neo-surface: var(--color-surface);
+    --neo-surface-alt: var(--color-surface-subtle);
+    --neo-black: var(--color-fg);
+    --neo-text: var(--color-fg);
+    --neo-text-muted: var(--color-muted);
+    --neo-primary: var(--color-primary);
+    --neo-primary-dark: var(--color-primary-hover);
+    --neo-primary-light: var(--color-primary-light);
+    --neo-border: 1px solid var(--color-border);
+    --neo-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    --neo-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --neo-shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.06);
 
-    /* Typography - Standardized Academic Times New Roman for Geometry Lab */
-    --font-ui: 'Times New Roman', Times, 'Tinos', 'Plus Jakarta Sans', serif;
-    --font-heading: 'Times New Roman', Times, 'Tinos', serif;
-    --font-serif-heading: 'Times New Roman', Times, 'Tinos', serif;
+    /* Clean Small Radius Hierarchy */
+    --radius-tile: 8px;
+    --radius-card: 14px;
+    --radius-pill: 9999px;
+    --neo-radius: 14px;
+    --neo-radius-sm: 8px;
+    --neo-radius-lg: 16px;
+
+    /* Typography */
+    --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
 
@@ -83,28 +83,29 @@
     width: 100%;
   }
 
-  body, button, input, select, textarea, table, th, td, label, p, span, a, li, h1, h2, h3, h4, h5, h6 {
-    font-family: 'Times New Roman', Times, 'Tinos', serif;
+  /* Modern UI Sans for interactive chrome */
+  body, button, input, select, textarea, label, nav, header {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   body {
-    background-color: var(--neo-bg);
-    color: var(--neo-text);
-    font-family: 'Times New Roman', Times, 'Tinos', serif;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
     max-width: 100vw;
     width: 100%;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Times New Roman', Times, 'Tinos', serif;
-    font-weight: 800;
-    color: #000000;
-    letter-spacing: -0.01em;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+    color: var(--color-fg);
+    letter-spacing: -0.015em;
   }
 
   /* Academic Grade 9 Question Typography */
@@ -340,13 +341,13 @@
 
 .katex {
   font-size: 1.05em;
-  color: #000000;
+  color: inherit;
   text-rendering: geometricPrecision;
 }
 
 .katex-display {
   margin: 8px 0 !important;
-  color: #000000;
+  color: inherit;
   overflow-x: auto;
   overflow-y: hidden;
   text-align: center;
@@ -747,5 +748,181 @@
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* =========================================================================
+   SCALORA & LINEAR GRADE INTERACTION DESIGN SYSTEM TOKENS & UTILITIES
+   ========================================================================= */
+
+/* 1. Custom Mouse Cursor Engine */
+@media (pointer: coarse) {
+  .cursor-dot,
+  .cursor-circle {
+    display: none !important;
+  }
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #0F291E;
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+  box-shadow: 0 0 6px rgba(15, 41, 30, 0.4);
+}
+
+.cursor-circle {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(15, 41, 30, 0.3);
+  background-color: rgba(15, 41, 30, 0.02);
+  border-radius: 50%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  will-change: transform, width, height, border-color, background-color;
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease,
+              background-color 0.22s ease,
+              backdrop-filter 0.22s ease;
+}
+
+.cursor-circle.cursor-hover {
+  width: 58px;
+  height: 58px;
+  border: 1.5px solid rgba(22, 163, 74, 0.6);
+  background-color: rgba(22, 163, 74, 0.06);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* 2. 3D Perspective Tilt Grid Background (Descartes / Millimeter Grid) */
+.grid-bg-container {
+  perspective: 500px;
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+.grid-bg {
+  position: absolute;
+  inset: -20%;
+  width: 140%;
+  height: 140%;
+  background-image: 
+    linear-gradient(to right, rgba(15, 41, 30, 0.08) 1.5px, transparent 1.5px),
+    linear-gradient(to bottom, rgba(15, 41, 30, 0.08) 1.5px, transparent 1.5px),
+    linear-gradient(to right, rgba(15, 41, 30, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 41, 30, 0.035) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  pointer-events: none;
+  will-change: transform;
+  transform-style: preserve-3d;
+  transition: transform 0.08s cubic-bezier(0.16, 1, 0.3, 1);
+  mask-image: radial-gradient(circle at 50% 50%, black 45%, transparent 88%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 45%, transparent 88%);
+}
+
+/* 3. Draggable & Parallax Sticky Notes */
+.font-handwriting {
+  font-family: 'Caveat', 'Reenie Beanie', cursive, sans-serif;
+}
+
+.font-reenie {
+  font-family: 'Reenie Beanie', cursive, sans-serif;
+}
+
+.sticky-note {
+  font-family: 'Reenie Beanie', 'Caveat', cursive, sans-serif;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  transform-origin: center center;
+  user-select: none;
+  touch-action: none;
+}
+
+.sticky-note:active {
+  cursor: grabbing;
+}
+
+/* 4. Focus Dimming Mode */
+body.focus-mode .focus-dim-target,
+body.focus-mode header,
+body.focus-mode .sticky-note,
+body.focus-mode .grid-bg,
+body.focus-mode .focus-mode-secondary {
+  opacity: 0.25 !important;
+  filter: blur(2px) !important;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  pointer-events: none;
+}
+
+body.focus-mode .focus-active-element {
+  opacity: 1 !important;
+  filter: none !important;
+  position: relative;
+  z-index: 60 !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.4), 0 15px 35px -5px rgba(22, 163, 74, 0.25) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* 5. Dynamic Specular Gloss Lighting */
+.specular-glass {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.specular-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    420px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.55),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+  z-index: 10;
+}
+
+.specular-glass:hover::after {
+  opacity: 1;
+}
+
+/* 6. Button Shake & Success Animation */
+@keyframes buttonShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px) rotate(-1deg); }
+  40% { transform: translateX(4px) rotate(1deg); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.animate-shake {
+  animation: buttonShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-cursor-blink {
+  animation: cursorBlink 1s infinite;
+}
+
+
 
 

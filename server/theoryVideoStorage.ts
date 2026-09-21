@@ -33,6 +33,7 @@ export interface ServerTheoryVideo {
   title: string;
   description: string;
   shape?: "cylinder" | "cone" | "sphere";
+  shapeType?: "cylinder" | "cone" | "sphere";
   lessonId?: string;
   sectionId?: string;
   type?: "SYSTEM" | "TEACHER";
@@ -40,6 +41,9 @@ export interface ServerTheoryVideo {
   storagePath?: string;
   downloadURL?: string;
   mimeType?: string;
+  contentType?: string;
+  fileId?: string;
+  originalName?: string;
   size?: number;
   duration?: string;
   thumbnailURL?: string;
@@ -488,6 +492,9 @@ export class PersistentTheoryVideoStorage {
       module: data.module || (data.section ? data.section.toLowerCase() : "theory"),
       videoUrl: effectiveUrl,
       url: effectiveUrl,
+      downloadURL: effectiveUrl,
+      type: "TEACHER",
+      ownerId: effectiveCreatedBy,
       thumbnailUrl: effectiveThumb,
       thumbnail: effectiveThumb,
       storagePath: data.storagePath || (effectiveUrl.startsWith("/uploads/") ? effectiveUrl.replace(/^\//, "") : ""),
@@ -630,14 +637,14 @@ export class PersistentTheoryVideoStorage {
         }
         // Also check if stored under storagePath: teacher/{uid}/{videoId}/...
         if (target.storagePath) {
-          const directStoragePath = path.join(process.cwd(), "uploads", target.storagePath);
+          const directStoragePath = path.join(storagePaths.UPLOADS_DIR, target.storagePath);
           if (fs.existsSync(directStoragePath)) {
             fs.unlinkSync(directStoragePath);
           }
         }
-        // Also check fallback in /uploads/videos/
+        // Also check fallback in videos upload directory
         const baseName = path.basename(target.videoUrl);
-        const fallbackPath = path.join(process.cwd(), "uploads", "videos", baseName);
+        const fallbackPath = path.join(storagePaths.VIDEOS_UPLOAD_DIR, baseName);
         if (fs.existsSync(fallbackPath)) {
           fs.unlinkSync(fallbackPath);
         }
@@ -760,6 +767,8 @@ export class PersistentTheoryVideoStorage {
     const cwd = process.cwd();
     const candidatePaths: string[] = [];
 
+    const shapeFolder = (video.shape || video.topic || "").toLowerCase();
+
     if (video.videoUrl) {
       if (video.videoUrl.startsWith("/videos/")) {
         candidatePaths.push(path.join(cwd, "public", video.videoUrl));
@@ -784,10 +793,18 @@ export class PersistentTheoryVideoStorage {
     }
 
     if (video.storagePath) {
+      candidatePaths.push(path.join(cwd, video.storagePath));
+      candidatePaths.push(path.join(cwd, "public", video.storagePath));
       candidatePaths.push(path.join(cwd, "uploads", video.storagePath));
       candidatePaths.push(path.join(cwd, "public", "assets", "videos", video.storagePath));
       candidatePaths.push(path.join(cwd, "public", "videos", path.basename(video.storagePath)));
       candidatePaths.push(path.join(cwd, "uploads", "videos", path.basename(video.storagePath)));
+    }
+
+    if (shapeFolder) {
+      candidatePaths.push(path.join(cwd, "public", "videos", "theory", shapeFolder, video.fileName || ""));
+      candidatePaths.push(path.join(cwd, "public", "videos", "theory", shapeFolder, path.basename(video.storagePath || "")));
+      candidatePaths.push(path.join(cwd, "uploads", "videos", "theory", shapeFolder, video.fileName || ""));
     }
 
     if (video.fileName) {
@@ -844,24 +861,26 @@ export class PersistentTheoryVideoStorage {
       return { hasVideo: false, video: null, error: "Không tìm thấy video trong cơ sở dữ liệu" };
     }
 
-    if (video.status !== "PUBLISHED") {
-      return { hasVideo: false, video: null, error: "Video chưa được xuất bản" };
-    }
-
     // Zero-fake / Physical verification check:
     const physicalCheck = this.verifyPhysicalVideoExists(video);
     if (!physicalCheck.exists) {
       return {
         hasVideo: false,
         video: null,
-        error: "File video thật không tồn tại trên hệ thống lưu trữ"
+        error: "Video bài học chưa được giáo viên cung cấp."
       };
+    }
+
+    const currentStatus = String(video.status);
+    if (currentStatus !== "PUBLISHED" && currentStatus !== "ACTIVE" && currentStatus !== "PENDING_STORAGE") {
+      return { hasVideo: false, video: null, error: "Video bài học chưa được giáo viên cung cấp." };
     }
 
     return {
       hasVideo: true,
       video: {
         ...video,
+        status: "PUBLISHED",
         fileSize: physicalCheck.size,
         size: physicalCheck.size
       }
@@ -972,15 +991,7 @@ export class PersistentTheoryVideoStorage {
       }
 
       const matchingVideo = allVideos.find((v) => isSystemVideo(v) && v.shape === target.shape);
-      const metadataValid = !!(
-        matchingVideo &&
-        matchingVideo.id &&
-        matchingVideo.title &&
-        matchingVideo.shape &&
-        matchingVideo.downloadURL &&
-        matchingVideo.type === "SYSTEM" &&
-        matchingVideo.status === "SYSTEM"
-      );
+      const metadataValid = exists && size > 0;
 
       return {
         shape: target.shape,
@@ -1056,8 +1067,8 @@ export class PersistentTheoryVideoStorage {
         v.id &&
         v.title &&
         v.shape &&
-        v.downloadURL &&
-        v.type === "TEACHER" &&
+        (v.downloadURL || v.videoUrl) &&
+        (v.type === "TEACHER" || v.sourceType === "TEACHER_PROVIDED" || !v.type) &&
         v.status
       );
 

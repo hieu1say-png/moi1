@@ -20,15 +20,18 @@ import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthGate } from './components/auth/AuthGate';
 import { GlobalErrorBoundary } from './components/common/GlobalErrorBoundary';
+import { AppleExperienceProvider } from './components/motion/AppleExperienceProvider';
 
 export default function App() {
   return (
     <GlobalErrorBoundary>
-      <ToastProvider>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
-      </ToastProvider>
+      <AppleExperienceProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </ToastProvider>
+      </AppleExperienceProvider>
     </GlobalErrorBoundary>
   );
 }

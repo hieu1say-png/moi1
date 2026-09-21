@@ -1,9 +1,6 @@
 import React, { ReactNode } from 'react';
-import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MainContent } from './MainContent';
-import { MobileNavigation } from './MobileNavigation';
-import { FloatingSTEMNavDock } from './FloatingSTEMNavDock';
 import { ToastContainer } from '../common/Toast';
 import { SearchModal } from './SearchModal';
 import { useApp } from '../../context/AppContext';
@@ -32,22 +29,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       {/* Teacher Student Preview Mode Banner */}
       {isStudentPreview && <StudentPreviewBanner />}
 
-      <div className="relative flex-1 flex min-h-0">
-        {/* Desktop Sidebar */}
-        <Sidebar />
+      {/* Top Header Compact Masthead */}
+      <Header />
 
-        {/* Main Column */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Header */}
-          <Header />
-
-          {/* Dynamic Main Content View */}
-          <MainContent>{children}</MainContent>
-
-          {/* Animated Floating STEM Navigation Dock */}
-          <FloatingSTEMNavDock />
-        </div>
-      </div>
+      {/* Dynamic Main Content View */}
+      <MainContent>{children}</MainContent>
 
       {/* Thầy Hiếu AI Smart Dock (Active everywhere except full AI View to prevent duplication) */}
       {currentRoute !== '/ai' && <TeacherDock />}

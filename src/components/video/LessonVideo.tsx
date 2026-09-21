@@ -465,10 +465,10 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({
         </div>
         <div className="space-y-1 max-w-sm">
           <h4 className="font-bold text-[#3A302B] text-sm sm:text-base font-serif">
-            Chưa có video bài giảng cho {shapeNameVN}
+            Video bài học chưa được giáo viên cung cấp.
           </h4>
           <p className="text-xs text-[#766A61] leading-relaxed font-sans">
-            Giáo viên bộ môn chưa tải lên video cho chuyên đề này. Hãy sử dụng mô hình 3D và phòng thí nghiệm thực tế bên dưới.
+            Chuyên đề {shapeNameVN} đang chờ giáo viên tải tệp video bài học thực tế lên hệ thống lưu trữ.
           </p>
         </div>
       </div>

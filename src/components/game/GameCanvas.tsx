@@ -9,7 +9,7 @@
 import React, { useRef, useEffect } from 'react';
 import { GameState } from './types';
 import { GameSound } from './soundEffects';
-import { getGameConfig } from './gameConfig';
+import { getGameConfig, prefersReducedMotion } from './gameConfig';
 
 interface PowerUpItem {
   x: number;
@@ -362,8 +362,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       ctx.save();
 
-      // Screen Shake
-      if (stateRef.current.shake > 0) {
+      // Screen Shake (Suppressed if user prefers reduced motion)
+      const reducedMotion = prefersReducedMotion();
+      if (reducedMotion) {
+        stateRef.current.shake = 0;
+      } else if (stateRef.current.shake > 0) {
         const sx = (Math.random() - 0.5) * stateRef.current.shake;
         const sy = (Math.random() - 0.5) * stateRef.current.shake;
         ctx.translate(sx, sy);
@@ -421,15 +424,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         }
 
-        // Fire trail if streak >= 3
-        if (currentProps.streak >= 3 && stateRef.current.frames % 3 === 0) {
+        // Fire trail if streak >= 3 (capped and respects reduced motion)
+        if (!reducedMotion && currentProps.streak >= 3 && stateRef.current.frames % 4 === 0 && particles.length < config.maxParticles) {
           particles.push({
             x: bird.x - 5,
             y: bird.y + 14 + (Math.random() - 0.5) * 6,
             vx: -2 - Math.random() * 2,
             vy: (Math.random() - 0.5) * 2,
             color: currentProps.streak >= 5 ? '#f43f5e' : '#f97316',
-            size: Math.random() * 4 + 3,
+            size: Math.random() * 3 + 2,
             life: 1
           });
         }
@@ -536,19 +539,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           ) {
             b.active = false;
             bullets.splice(i, 1);
-            stateRef.current.shake = 14;
+            stateRef.current.shake = reducedMotion ? 0 : Math.round(14 * config.screenShakeMultiplier);
 
-            // Explosion particles
-            for (let k = 0; k < 18; k++) {
-              particles.push({
-                x: boss.x + boss.width / 2,
-                y: boss.y + boss.height / 2,
-                vx: (Math.random() - 0.5) * 8,
-                vy: (Math.random() - 0.5) * 8,
-                color: '#f43f5e',
-                size: Math.random() * 5 + 3,
-                life: 1
-              });
+            // Explosion particles (capped)
+            if (!reducedMotion) {
+              const count = Math.min(config.maxParticles, 8);
+              for (let k = 0; k < count; k++) {
+                particles.push({
+                  x: boss.x + boss.width / 2,
+                  y: boss.y + boss.height / 2,
+                  vx: (Math.random() - 0.5) * 5,
+                  vy: (Math.random() - 0.5) * 5,
+                  color: '#f43f5e',
+                  size: Math.random() * 4 + 2,
+                  life: 1
+                });
+              }
             }
           } else if (b.x > width + 40) {
             bullets.splice(i, 1);

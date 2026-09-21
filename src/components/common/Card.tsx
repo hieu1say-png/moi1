@@ -39,19 +39,19 @@ export const Card: React.FC<CardProps> = ({
   const getVariantStyles = (): string => {
     switch (variant) {
       case 'cylinder':
-        return 'bg-[#FFF9E6] border-black text-black';
+        return 'bg-white border-teal-200 text-slate-900 hover:border-teal-300';
       case 'sphere':
-        return 'bg-[#FFF9E6] border-black text-black';
+        return 'bg-white border-indigo-200 text-slate-900 hover:border-indigo-300';
       case 'cone':
-        return 'bg-[#FFF9E6] border-black text-black';
+        return 'bg-white border-blue-200 text-slate-900 hover:border-blue-300';
       case 'ai':
-        return 'bg-[#FFF9E6] border-black text-black';
+        return 'bg-white border-orange-200 text-slate-900 hover:border-orange-300';
       case 'achievement':
-        return 'bg-[#FFD23F] border-black text-black';
+        return 'bg-white border-amber-200 text-slate-900 hover:border-amber-300';
       case 'subtle':
-        return 'bg-[#FFF9E6] border-black text-black';
+        return 'bg-slate-50 border-slate-200 text-slate-900';
       default:
-        return 'bg-white border-black text-black';
+        return 'bg-white border-slate-200 text-slate-900';
     }
   };
 
@@ -59,10 +59,10 @@ export const Card: React.FC<CardProps> = ({
     <div
       id={id}
       className={`
-        rounded-lg p-5 sm:p-6
-        ${bordered ? `border-3 ${getVariantStyles()}` : 'bg-white text-black'}
-        shadow-neo
-        ${hoverable ? 'transition-transform duration-150 hover:-translate-y-1 hover:shadow-neo-lg cursor-pointer' : ''}
+        rounded-xl p-5 sm:p-6
+        ${bordered ? `border ${getVariantStyles()}` : 'bg-white text-slate-900'}
+        shadow-xs
+        ${hoverable ? 'transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm cursor-pointer' : ''}
         ${className}
       `}
       {...props}
@@ -78,7 +78,7 @@ export const CardHeader: React.FC<HTMLAttributes<HTMLDivElement>> = ({
   id,
   ...props
 }) => (
-  <div id={id} className={`flex flex-col space-y-1.5 pb-3.5 border-b-2 border-black mb-3.5 ${className}`} {...props}>
+  <div id={id} className={`flex flex-col space-y-1 pb-3 border-b border-slate-200/80 mb-3.5 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -91,7 +91,7 @@ export const CardTitle: React.FC<HTMLAttributes<HTMLHeadingElement>> = ({
 }) => (
   <h3
     id={id}
-    className={`font-black text-base sm:text-lg lg:text-xl tracking-tight text-black font-heading ${className}`}
+    className={`font-bold text-base sm:text-lg tracking-tight text-slate-900 ${className}`}
     {...props}
   >
     {children}
@@ -104,7 +104,7 @@ export const CardDescription: React.FC<HTMLAttributes<HTMLParagraphElement>> = (
   id,
   ...props
 }) => (
-  <p id={id} className={`text-xs sm:text-sm text-gray-700 font-semibold leading-relaxed ${className}`} {...props}>
+  <p id={id} className={`text-xs sm:text-sm text-slate-600 font-normal leading-relaxed ${className}`} {...props}>
     {children}
   </p>
 );
@@ -115,7 +115,7 @@ export const CardContent: React.FC<HTMLAttributes<HTMLDivElement>> = ({
   id,
   ...props
 }) => (
-  <div id={id} className={`text-black ${className}`} {...props}>
+  <div id={id} className={`text-slate-800 ${className}`} {...props}>
     {children}
   </div>
 );
@@ -128,7 +128,7 @@ export const CardFooter: React.FC<HTMLAttributes<HTMLDivElement>> = ({
 }) => (
   <div
     id={id}
-    className={`flex items-center pt-3.5 border-t-2 border-black mt-3.5 text-xs sm:text-sm text-gray-700 font-bold ${className}`}
+    className={`flex items-center pt-3 border-t border-slate-200/80 mt-3.5 text-xs sm:text-sm text-slate-600 font-medium ${className}`}
     {...props}
   >
     {children}

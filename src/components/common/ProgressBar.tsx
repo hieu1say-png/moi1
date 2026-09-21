@@ -53,38 +53,38 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   const colorClasses: Record<ProgressColor, string> = {
-    cylinder: 'bg-[#3B82F6]',
-    sphere: 'bg-[#14B8A6]',
-    cone: 'bg-[#FF6B00]',
-    ai: 'bg-[#8B5CF6]',
-    achievement: 'bg-[#FFD23F]',
-    indigo: 'bg-[#6366F1]',
-    emerald: 'bg-[#22C55E]',
-    amber: 'bg-[#FFD23F]',
-    blue: 'bg-[#3B82F6]',
-    purple: 'bg-[#8B5CF6]'
+    cylinder: 'bg-teal-600',
+    sphere: 'bg-indigo-600',
+    cone: 'bg-blue-600',
+    ai: 'bg-orange-600',
+    achievement: 'bg-amber-500',
+    indigo: 'bg-indigo-600',
+    emerald: 'bg-emerald-600',
+    amber: 'bg-amber-600',
+    blue: 'bg-blue-600',
+    purple: 'bg-purple-600'
   };
 
   return (
     <div id={id} className={`w-full ${className}`}>
       {(label || showValue) && (
-        <div className="flex justify-between items-center mb-1.5 text-xs font-black text-black">
+        <div className="flex justify-between items-center mb-1.5 text-xs font-semibold text-slate-800">
           <div className="flex items-center gap-1.5">
             {label && <span>{label}</span>}
-            {subLabel && <span className="text-gray-700 font-bold text-[11px]">({subLabel})</span>}
+            {subLabel && <span className="text-slate-500 font-normal text-[11px]">({subLabel})</span>}
           </div>
-          {showValue && <span className="text-black tabular-nums font-mono font-black">{percentage}%</span>}
+          {showValue && <span className="text-slate-900 tabular-nums font-mono font-bold">{percentage}%</span>}
         </div>
       )}
       <div
-        className={`w-full bg-white rounded border-3 border-black shadow-neo-sm overflow-hidden p-0.5 ${sizeClasses[size]}`}
+        className={`w-full bg-slate-100 rounded-full border border-slate-200/80 overflow-hidden ${sizeClasses[size]}`}
         role="progressbar"
         aria-valuenow={percentage}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className={`${colorClasses[color]} h-full rounded-xs border-r-2 border-black transition-all duration-300 ease-out`}
+          className={`${colorClasses[color]} h-full rounded-full transition-all duration-500 ease-out`}
           style={{ width: `${percentage}%` }}
         />
       </div>

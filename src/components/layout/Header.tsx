@@ -218,95 +218,150 @@ export const Header: React.FC = () => {
               </nav>
             ) : (
               /* ----------------------------------------------------------------------- */
-              /* B. MENU BÊN PHẢI CHO HỌC SINH (STUDENT ROUTE)                           */
+              /* B. COMPACT MASTHEAD NAVIGATION CHO HỌC SINH (7 PRIMARY DESTINATIONS)   */
               /* ----------------------------------------------------------------------- */
-              <nav className="hidden md:flex items-center gap-1.5" id="student-header-nav">
-                {/* 1. Learning Map */}
+              <nav className="hidden lg:flex items-center gap-1" id="student-header-nav">
+                {/* 1. Trang chủ */}
                 <button
-                  id="student-nav-learning-map"
+                  id="student-nav-home"
                   type="button"
                   onClick={() => navigateTo('/home')}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     currentRoute === '/home'
-                      ? 'bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] shadow-2xs'
-                      : 'text-gray-600 hover:text-[#15803D] hover:bg-[#F0FDF4]'
+                      ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  <Map className={`w-4 h-4 ${currentRoute === '/home' ? 'text-[#15803D]' : 'text-[#16A34A]'}`} />
-                  <span>Learning Map</span>
+                  <Layers className={`w-3.5 h-3.5 ${currentRoute === '/home' ? 'text-blue-700' : 'text-slate-500'}`} />
+                  <span>Trang chủ</span>
                 </button>
 
-                {/* 2. AI Hình học */}
+                {/* 2. Lý thuyết */}
+                <button
+                  id="student-nav-theory"
+                  type="button"
+                  onClick={() => navigateTo('/theory')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/theory' || currentRoute === '/cylinder' || currentRoute === '/cone' || currentRoute === '/sphere'
+                      ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <BookOpen className={`w-3.5 h-3.5 ${currentRoute.startsWith('/theory') || currentRoute === '/cylinder' || currentRoute === '/cone' || currentRoute === '/sphere' ? 'text-blue-700' : 'text-slate-500'}`} />
+                  <span>Lý thuyết</span>
+                </button>
+
+                {/* 3. Khám phá 3D */}
+                <button
+                  id="student-nav-explore"
+                  type="button"
+                  onClick={() => navigateTo('/explore')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/explore'
+                      ? 'bg-teal-50 text-teal-800 font-bold border border-teal-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Compass className={`w-3.5 h-3.5 ${currentRoute === '/explore' ? 'text-teal-700' : 'text-slate-500'}`} />
+                  <span>Khám phá 3D</span>
+                </button>
+
+                {/* 4. Luyện tập */}
+                <button
+                  id="student-nav-practice"
+                  type="button"
+                  onClick={() => navigateTo('/practice')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/practice'
+                      ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <CheckCircle2 className={`w-3.5 h-3.5 ${currentRoute === '/practice' ? 'text-blue-700' : 'text-slate-500'}`} />
+                  <span>Luyện tập</span>
+                </button>
+
+                {/* 5. STEM */}
+                <button
+                  id="student-nav-stem"
+                  type="button"
+                  onClick={() => navigateTo('/real-world')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/real-world'
+                      ? 'bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Globe2 className={`w-3.5 h-3.5 ${currentRoute === '/real-world' ? 'text-emerald-700' : 'text-slate-500'}`} />
+                  <span>STEM</span>
+                </button>
+
+                {/* 6. AI Tutor */}
                 <button
                   id="student-nav-ai"
                   type="button"
                   onClick={() => navigateTo('/ai')}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     currentRoute === '/ai'
-                      ? 'bg-[#047857] text-white border border-[#047857] shadow-2xs'
-                      : 'text-[#15803D] bg-[#DCFCE7] hover:bg-[#BBF7D0]/70 border border-[#BBF7D0]'
+                      ? 'bg-blue-600 text-white font-bold border border-blue-600 shadow-2xs'
+                      : 'text-blue-700 bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/60'
                   }`}
                 >
-                  <Bot className={`w-4 h-4 ${currentRoute === '/ai' ? 'text-white' : 'text-[#15803D]'}`} />
-                  <span>AI Hình học</span>
+                  <Bot className={`w-3.5 h-3.5 ${currentRoute === '/ai' ? 'text-white' : 'text-blue-700'}`} />
+                  <span>AI Tutor</span>
                   <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold ${
-                    currentRoute === '/ai' ? 'bg-white/20 text-white' : 'bg-white text-[#15803D] border border-[#BBF7D0]'
+                    currentRoute === '/ai' ? 'bg-white/20 text-white' : 'bg-white text-blue-700 border border-blue-200'
                   }`}>
                     24/7
                   </span>
                 </button>
 
-                {/* 3. Hồ sơ */}
+                {/* 7. Ôn thi vào 10 */}
                 <button
-                  id="student-nav-profile"
+                  id="student-nav-exam-prep"
                   type="button"
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
-                  title="Hồ sơ tư duy không gian 8 chỉ số của em"
+                  onClick={() => navigateTo('/exam-prep')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/exam-prep'
+                      ? 'bg-rose-50 text-rose-800 font-bold border border-rose-200/80 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
                 >
-                  <Brain className="w-4 h-4 text-amber-500" />
-                  <span>Hồ sơ</span>
-                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <GraduationCap className={`w-3.5 h-3.5 ${currentRoute === '/exam-prep' ? 'text-rose-700' : 'text-slate-500'}`} />
+                  <span>Ôn thi vào 10</span>
                 </button>
 
-                {/* 3.1 Rương kho báu đảo tri thức */}
+                {/* Quick Game Pill */}
                 <button
-                  id="student-nav-chests"
+                  id="student-nav-game"
                   type="button"
-                  onClick={() => setIsChestsModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-700 bg-amber-50/80 hover:bg-amber-100 border border-amber-200/80 transition-all cursor-pointer shadow-2xs"
-                  title="Rương kho báu & Huy hiệu đảo tri thức"
+                  onClick={() => navigateTo('/game')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    currentRoute === '/game'
+                      ? 'bg-indigo-100 text-indigo-900 font-bold border border-indigo-300 shadow-2xs'
+                      : 'text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200/70'
+                  }`}
+                  title="Hình Học 9 Master (Trò chơi giáo dục chậm rãi, tĩnh lặng)"
                 >
-                  <Gift className="w-4 h-4 text-amber-600" />
-                  <span className="hidden xl:inline">Rương đảo</span>
+                  <Trophy className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Game 9</span>
                 </button>
 
-                {/* 3.2 Tháp tri thức STEM 5.0 */}
-                <button
-                  id="student-nav-tower"
-                  type="button"
-                  onClick={() => setIsTowerModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200/80 transition-all cursor-pointer shadow-2xs"
-                  title="Tháp tri thức Euclid & Archimedes"
-                >
-                  <Trophy className="w-4 h-4 text-indigo-600" />
-                  <span className="hidden xl:inline">Tháp tri thức</span>
-                </button>
-
-                {/* 4. Menu Dropdown Button */}
-                <div className="relative" ref={menuRef}>
+                {/* Profile & Gamification Dropdown Button */}
+                <div className="relative ml-1" ref={menuRef}>
                   <button
-                    id="student-nav-menu-btn"
+                    id="student-nav-profile-menu-btn"
                     type="button"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
                       isMenuOpen
                         ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                     }`}
+                    title="Hồ sơ & thành tích"
                   >
-                    <Menu className="w-4 h-4" />
-                    <span>Menu</span>
+                    <Brain className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="hidden xl:inline">Hồ sơ</span>
                   </button>
 
                   {/* Dropdown Popup */}
@@ -316,25 +371,36 @@ export const Header: React.FC = () => {
                       className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-lg p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
                     >
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2.5 py-1">
-                        Chuyên Đề & Luyện Tập
+                        Hồ Sơ & Tiến Độ
                       </div>
 
                       <div className="space-y-0.5">
                         <button
                           type="button"
                           onClick={() => {
-                            navigateTo('/theory');
+                            setIsProfileModalOpen(true);
                             setIsMenuOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/theory'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-900 transition-colors text-left"
                         >
                           <span className="flex items-center gap-2">
-                            <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                            Lý Thuyết & Công Thức
+                            <Brain className="w-3.5 h-3.5 text-amber-500" />
+                            Hồ Sơ Tư Duy 8 Chỉ Số
+                          </span>
+                          <Sparkles className="w-3 h-3 text-amber-500" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsChestsModalOpen(true);
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-900 transition-colors text-left"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Gift className="w-3.5 h-3.5 text-amber-600" />
+                            Rương Đảo Tri Thức
                           </span>
                           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                         </button>
@@ -342,77 +408,14 @@ export const Header: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            navigateTo('/explore');
+                            setIsTowerModalOpen(true);
                             setIsMenuOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/explore'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-900 transition-colors text-left"
                         >
                           <span className="flex items-center gap-2">
-                            <Compass className="w-3.5 h-3.5 text-teal-500" />
-                            Khám Phá Không Gian 3D
-                          </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigateTo('/practice');
-                            setIsMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/practice'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-orange-500" />
-                            Luyện Tập & Trắc Nghiệm
-                          </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigateTo('/exam-prep');
-                            setIsMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/exam-prep'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <FileCheck className="w-3.5 h-3.5 text-red-500" />
-                            Ôn Thi Vào 10
-                          </span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
-                            HOT
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigateTo('/real-world');
-                            setIsMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/real-world'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <Globe2 className="w-3.5 h-3.5 text-emerald-500" />
-                            Ứng Dụng Thực Tế
+                            <Trophy className="w-3.5 h-3.5 text-indigo-600" />
+                            Tháp Tri Thức STEM
                           </span>
                           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                         </button>
@@ -423,11 +426,7 @@ export const Header: React.FC = () => {
                             navigateTo('/achievements');
                             setIsMenuOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-colors ${
-                            currentRoute === '/achievements'
-                              ? 'bg-orange-50 text-orange-700 font-bold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors text-left"
                         >
                           <span className="flex items-center gap-2">
                             <Award className="w-3.5 h-3.5 text-amber-500" />
@@ -435,38 +434,6 @@ export const Header: React.FC = () => {
                           </span>
                           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                         </button>
-                      </div>
-
-                      <div className="border-t border-slate-100 my-2 pt-2">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2.5 py-1">
-                          Tiện Ích Học Tập
-                        </div>
-                        <div className="flex items-center gap-1 px-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSearchOpen(true);
-                              setIsMenuOpen(false);
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200"
-                          >
-                            <Search className="w-3.5 h-3.5 text-slate-500" />
-                            Tìm kiếm
-                          </button>
-                          {isTeacher && !isStudentPreview && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigateTo('/settings');
-                                setIsMenuOpen(false);
-                              }}
-                              className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-700 border border-slate-200"
-                              title="Cài đặt giáo viên"
-                            >
-                              <Settings className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
                       </div>
 
                       {/* Auth Status & Sessions */}
@@ -494,7 +461,7 @@ export const Header: React.FC = () => {
                             className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold transition-colors"
                           >
                             <LogOut className="w-3.5 h-3.5" />
-                            Đăng xuất học sinh ({studentUser?.fullName || 'Học sinh'})
+                            Đăng xuất ({studentUser?.fullName || 'Học sinh'})
                           </button>
                         ) : !isTeacher ? (
                           <button
@@ -503,26 +470,12 @@ export const Header: React.FC = () => {
                               setIsMenuOpen(false);
                               navigateTo('/login');
                             }}
-                            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-colors"
+                            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
                           >
                             <LogIn className="w-3.5 h-3.5" />
                             Đăng nhập tài khoản học sinh
                           </button>
                         ) : null}
-
-                        {isTeacher && !isStudentPreview && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsMenuOpen(false);
-                              openLogoutModal('teacher');
-                            }}
-                            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-medium transition-colors"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                            Đăng xuất GV ({teacherUser?.fullName || 'Giáo viên'})
-                          </button>
-                        )}
                       </div>
                     </div>
                   )}
@@ -544,11 +497,11 @@ export const Header: React.FC = () => {
                   title={isStudentPreview ? "Đang xem trước học sinh - Nhấn để quay lại Bàn làm việc GV" : isStudentAuthenticated ? "Hồ sơ tài khoản của em" : "Đăng nhập học sinh"}
                 >
                   <div className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold shadow-2xs ${
-                    isStudentPreview ? 'bg-amber-600' : 'bg-gradient-to-br from-orange-500 to-amber-500'
+                    isStudentPreview ? 'bg-amber-600' : 'bg-gradient-to-br from-blue-600 to-indigo-600'
                   }`}>
                     {isStudentPreview ? <Eye className="w-3.5 h-3.5" /> : isStudentAuthenticated ? getAvatarInitial(studentUser?.fullName) : <LogIn className="w-3.5 h-3.5" />}
                   </div>
-                  <span className="text-xs font-bold text-slate-800 hidden lg:inline truncate max-w-[120px]">
+                  <span className="text-xs font-bold text-slate-800 hidden xl:inline truncate max-w-[120px]">
                     {isStudentPreview ? 'Xem Trước HS' : isStudentAuthenticated ? (studentUser?.fullName || 'Học sinh') : 'Đăng nhập'}
                   </span>
                 </button>
@@ -694,104 +647,133 @@ export const Header: React.FC = () => {
                   </>
                 ) : (
                   <>
+                    {/* 1. Trang chủ */}
                     <button
                       type="button"
                       onClick={() => {
                         navigateTo('/home');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-[#F0FDF4]"
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/home' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
                     >
-                      <Map className="w-4 h-4 text-[#16A34A]" />
-                      <span>Learning Map</span>
+                      <Layers className="w-5 h-5 text-blue-600" />
+                      <span>Trang chủ</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigateTo('/ai');
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-[#15803D] bg-[#DCFCE7] border border-[#BBF7D0]"
-                    >
-                      <Bot className="w-4 h-4 text-[#15803D]" />
-                      <span>AI Hình học 24/7</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileModalOpen(true);
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-amber-50"
-                    >
-                      <Brain className="w-4 h-4 text-amber-500" />
-                      <span>Hồ sơ năng lực không gian</span>
-                    </button>
+
+                    {/* 2. Lý thuyết */}
                     <button
                       type="button"
                       onClick={() => {
                         navigateTo('/theory');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-100"
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/theory' || currentRoute === '/cylinder' || currentRoute === '/cone' || currentRoute === '/sphere'
+                          ? 'bg-blue-50 text-blue-700 font-bold'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
                     >
-                      <BookOpen className="w-4 h-4 text-blue-500" />
-                      <span>Lý thuyết & Công thức</span>
+                      <BookOpen className="w-5 h-5 text-blue-600" />
+                      <span>Lý thuyết</span>
                     </button>
+
+                    {/* 3. Khám phá 3D */}
                     <button
                       type="button"
                       onClick={() => {
                         navigateTo('/explore');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-100"
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/explore' ? 'bg-teal-50 text-teal-800 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
                     >
-                      <Compass className="w-4 h-4 text-teal-500" />
-                      <span>Khám phá Không gian 3D</span>
+                      <Compass className="w-5 h-5 text-teal-600" />
+                      <span>Khám phá 3D</span>
                     </button>
+
+                    {/* 4. Luyện tập */}
                     <button
                       type="button"
                       onClick={() => {
                         navigateTo('/practice');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-slate-100"
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/practice' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
                     >
-                      <CheckCircle2 className="w-4 h-4 text-orange-500" />
-                      <span>Luyện tập & Trắc nghiệm</span>
+                      <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                      <span>Luyện tập</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigateTo('/exam-prep');
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-red-50"
-                    >
-                      <FileCheck className="w-4 h-4 text-red-500" />
-                      <span>Ôn thi vào 10</span>
-                    </button>
+
+                    {/* 5. STEM */}
                     <button
                       type="button"
                       onClick={() => {
                         navigateTo('/real-world');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-emerald-50"
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/real-world' ? 'bg-emerald-50 text-emerald-800 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
                     >
-                      <Globe2 className="w-4 h-4 text-emerald-500" />
-                      <span>Ứng dụng thực tế</span>
+                      <Globe2 className="w-5 h-5 text-emerald-600" />
+                      <span>STEM</span>
                     </button>
+
+                    {/* 6. AI Tutor */}
                     <button
                       type="button"
                       onClick={() => {
-                        navigateTo('/achievements');
+                        navigateTo('/ai');
                         setIsMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:bg-amber-50"
+                      className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/ai' ? 'bg-blue-600 text-white font-bold' : 'bg-blue-50 text-blue-700'
+                      }`}
                     >
-                      <Award className="w-4 h-4 text-amber-500" />
-                      <span>Bảng vàng thành tích</span>
+                      <span className="flex items-center gap-3">
+                        <Bot className="w-5 h-5" />
+                        <span>AI Tutor</span>
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-extrabold ${
+                        currentRoute === '/ai' ? 'bg-white/20 text-white' : 'bg-white text-blue-700 border border-blue-200'
+                      }`}>
+                        24/7
+                      </span>
+                    </button>
+
+                    {/* 7. Ôn thi vào 10 */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigateTo('/exam-prep');
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/exam-prep' ? 'bg-rose-50 text-rose-800 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <GraduationCap className="w-5 h-5 text-rose-600" />
+                      <span>Ôn thi vào 10</span>
+                    </button>
+
+                    {/* 8. Game */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigateTo('/game');
+                        setIsMobileDrawerOpen(false);
+                      }}
+                      className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                        currentRoute === '/game' ? 'bg-indigo-50 text-indigo-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Trophy className="w-5 h-5 text-indigo-600" />
+                      <span>Hình Học 9 Master (Game)</span>
                     </button>
 
                     <button

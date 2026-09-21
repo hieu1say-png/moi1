@@ -1,0 +1,53 @@
+{
+  "cylinder": {
+    "id": "theory-cylinder",
+    "title": "Video bài học Hình trụ - Nhận biết và Khai triển hình trụ",
+    "topic": "cylinder",
+    "fileName": "video_thuc_te_hinh_tru.mp4",
+    "mimeType": "video/mp4",
+    "storagePath": "videos/theory/cylinder/video_thuc_te_hinh_tru.mp4",
+    "url": "/videos/theory/cylinder/video_thuc_te_hinh_tru.mp4",
+    "poster": "/videos/tru_poster.jpg",
+    "status": "pending_storage",
+    "version": 1,
+    "uploadedAt": "2026-09-12T08:42:00.000Z",
+    "durationFormatted": "09:27",
+    "durationSeconds": 567,
+    "instructor": "Thầy Cao Đô (OLM.vn) - Toán 9 Kết nối tri thức",
+    "sourceOrigin": "Video bài giảng thực tế gửi kèm prompt"
+  },
+  "cone": {
+    "id": "theory-cone",
+    "title": "Video bài học Hình nón - Nhận biết và Sự tạo thành hình nón",
+    "topic": "cone",
+    "fileName": "video_thuc_te_hinh_non.mp4",
+    "mimeType": "video/mp4",
+    "storagePath": "videos/theory/cone/video_thuc_te_hinh_non.mp4",
+    "url": "/videos/theory/cone/video_thuc_te_hinh_non.mp4",
+    "poster": "/videos/non_poster.jpg",
+    "status": "pending_storage",
+    "version": 1,
+    "uploadedAt": "2026-09-12T08:42:00.000Z",
+    "durationFormatted": "09:44",
+    "durationSeconds": 584,
+    "instructor": "Thầy Cao Đô (OLM.vn) - Toán 9 Kết nối tri thức",
+    "sourceOrigin": "Video bài giảng thực tế gửi kèm prompt"
+  },
+  "sphere": {
+    "id": "theory-sphere",
+    "title": "Video bài học Hình cầu - Nhận biết hình cầu và Mặt cầu",
+    "topic": "sphere",
+    "fileName": "video_thuc_te_hinh_cau.mp4",
+    "mimeType": "video/mp4",
+    "storagePath": "videos/theory/sphere/video_thuc_te_hinh_cau.mp4",
+    "url": "/videos/theory/sphere/video_thuc_te_hinh_cau.mp4",
+    "poster": "/videos/cau_poster.jpg",
+    "status": "pending_storage",
+    "version": 1,
+    "uploadedAt": "2026-09-12T08:42:00.000Z",
+    "durationFormatted": "06:01",
+    "durationSeconds": 361,
+    "instructor": "Thầy Cao Đô (OLM.vn) - Toán 9 Kết nối tri thức",
+    "sourceOrigin": "Video bài giảng thực tế gửi kèm prompt"
+  }
+}

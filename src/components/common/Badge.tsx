@@ -42,29 +42,29 @@ export const Badge: React.FC<BadgeProps> = ({
   id
 }) => {
   const shapeClasses: Record<BadgeShape, string> = {
-    rounded: 'rounded',
+    rounded: 'rounded-md',
     pill: 'rounded-full'
   };
 
   const sizeClasses: Record<BadgeSize, string> = {
-    xs: 'px-2 py-0.5 text-[10px] font-black gap-1',
-    sm: 'px-2.5 py-0.5 text-xs font-black gap-1.5',
-    md: 'px-3 py-1 text-xs font-black gap-1.5'
+    xs: 'px-2 py-0.5 text-[10px] font-bold gap-1',
+    sm: 'px-2.5 py-0.5 text-xs font-semibold gap-1.5',
+    md: 'px-3 py-1 text-xs font-bold gap-1.5'
   };
 
   const variantClasses: Record<BadgeVariant, string> = {
-    cylinder: 'bg-[#FF6B00] text-white border border-black',
-    sphere: 'bg-[#00D1FF] text-black border border-black',
-    cone: 'bg-[#B7F000] text-black border border-black',
-    ai: 'bg-[#8B5CF6] text-white border border-black',
-    achievement: 'bg-[#FFD23F] text-black border border-black',
-    neutral: 'bg-[#FFF9E6] text-black border border-black',
-    success: 'bg-[#B7F000] text-black border border-black',
-    warning: 'bg-[#FFD23F] text-black border border-black',
-    danger: 'bg-[#FF4F81] text-white border border-black',
-    outline: 'bg-white text-black border border-black',
-    primary: 'bg-[#FF6B00] text-white border border-black',
-    mixed: 'bg-[#8B5CF6] text-white border border-black'
+    cylinder: 'bg-teal-50 text-teal-800 border border-teal-200',
+    sphere: 'bg-indigo-50 text-indigo-800 border border-indigo-200',
+    cone: 'bg-blue-50 text-blue-800 border border-blue-200',
+    ai: 'bg-orange-50 text-orange-800 border border-orange-200',
+    achievement: 'bg-amber-50 text-amber-800 border border-amber-200',
+    neutral: 'bg-slate-100 text-slate-700 border border-slate-200',
+    success: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+    warning: 'bg-amber-50 text-amber-800 border border-amber-200',
+    danger: 'bg-rose-50 text-rose-800 border border-rose-200',
+    outline: 'bg-white text-slate-700 border border-slate-300',
+    primary: 'bg-blue-50 text-blue-800 border border-blue-200',
+    mixed: 'bg-purple-50 text-purple-800 border border-purple-200'
   };
 
   return (

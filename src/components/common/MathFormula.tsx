@@ -489,7 +489,7 @@ function renderFormattedText(text: string, keyPrefix: string): React.ReactNode {
         while ((match = boldRegex.exec(line)) !== null) {
           if (match.index > lastIdx) {
             parts.push(
-              <span key={`${keyPrefix}-p-${lineIdx}-${partIdx++}`} className="font-normal text-[#3A302B]">
+              <span key={`${keyPrefix}-p-${lineIdx}-${partIdx++}`} className="font-normal">
                 {line.slice(lastIdx, match.index)}
               </span>
             );
@@ -497,7 +497,7 @@ function renderFormattedText(text: string, keyPrefix: string): React.ReactNode {
           parts.push(
             <strong
               key={`${keyPrefix}-b-${lineIdx}-${partIdx++}`}
-              className="font-semibold text-[#2E2926]"
+              className="font-semibold"
             >
               {match[1]}
             </strong>
@@ -507,7 +507,7 @@ function renderFormattedText(text: string, keyPrefix: string): React.ReactNode {
 
         if (lastIdx < line.length) {
           parts.push(
-            <span key={`${keyPrefix}-p-${lineIdx}-${partIdx++}`} className="font-normal text-[#3A302B]">
+            <span key={`${keyPrefix}-p-${lineIdx}-${partIdx++}`} className="font-normal">
               {line.slice(lastIdx)}
             </span>
           );
@@ -540,8 +540,8 @@ export function parseMixedContent(content: string, defaultDisplay: boolean): Rea
       <span
         className={
           defaultDisplay
-            ? 'block-math my-2 text-center text-[#2E2926] overflow-x-auto max-w-full'
-            : 'inline-math align-baseline text-[#2E2926]'
+            ? 'block-math my-2 text-center overflow-x-auto max-w-full'
+            : 'inline-math align-baseline'
         }
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -624,8 +624,8 @@ export function parseMixedContent(content: string, defaultDisplay: boolean): Rea
               key={`math-${keyIdx++}`}
               className={
                 tok.isBlock
-                  ? 'block-math my-2 text-center text-[#2E2926] overflow-x-auto max-w-full'
-                  : 'inline-math align-baseline text-[#2E2926]'
+                  ? 'block-math my-2 text-center overflow-x-auto max-w-full'
+                  : 'inline-math align-baseline'
               }
               dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
@@ -634,7 +634,7 @@ export function parseMixedContent(content: string, defaultDisplay: boolean): Rea
 
         // Text token with markdown bold and linebreaks
         return (
-          <span key={`txt-${keyIdx++}`} className="font-normal text-[#3A302B]">
+          <span key={`txt-${keyIdx++}`} className="font-normal">
             {renderFormattedText(tok.value, `seg-${keyIdx}`)}
           </span>
         );
