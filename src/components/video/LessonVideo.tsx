@@ -453,26 +453,9 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({
     (activeSrc && activeSrc.trim() !== '') || (videoSrc && videoSrc.trim() !== '')
   );
 
-  // Render polite message if no real video source is available - STRICT Zero-Fake Policy
+  // If no real video source is available, completely hide the video player (Strict Zero-Fake Policy)
   if (!hasValidVideoSource) {
-    return (
-      <div
-        id={`lesson-video-empty-${shape}`}
-        className={`w-full rounded-2xl border border-[#E5DCCF] bg-[#FFFDF8] p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-2.5 ${className}`}
-      >
-        <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
-          <Film className="w-5 h-5" />
-        </div>
-        <div className="space-y-1 max-w-sm">
-          <h4 className="font-bold text-[#3A302B] text-sm sm:text-base font-serif">
-            Video bài học chưa được giáo viên cung cấp.
-          </h4>
-          <p className="text-xs text-[#766A61] leading-relaxed font-sans">
-            Chuyên đề {shapeNameVN} đang chờ giáo viên tải tệp video bài học thực tế lên hệ thống lưu trữ.
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

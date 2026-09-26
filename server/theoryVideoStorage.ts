@@ -36,7 +36,7 @@ export interface ServerTheoryVideo {
   shapeType?: "cylinder" | "cone" | "sphere";
   lessonId?: string;
   sectionId?: string;
-  type?: "SYSTEM" | "TEACHER";
+  type?: "SYSTEM" | "TEACHER" | "SYSTEM_VIDEO" | "TEACHER_VIDEO";
   ownerId?: string;
   storagePath?: string;
   downloadURL?: string;
@@ -47,7 +47,7 @@ export interface ServerTheoryVideo {
   size?: number;
   duration?: string;
   thumbnailURL?: string;
-  status: "SYSTEM" | "DRAFT" | "PUBLISHED" | "ARCHIVED" | "PENDING_STORAGE";
+  status: "SYSTEM" | "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED" | "PENDING_STORAGE";
   createdAt: number;
   updatedAt: number;
   publishedAt?: number | null;
@@ -211,12 +211,18 @@ export const CANONICAL_AUTHOR = "Thầy. Trần Ngọc Hiếu (Trường Phổ T
 // Initial Pedagogical Seed Videos: STRICT ZERO-FAKE POLICY -> Empty by default
 export const DEFAULT_SEED_VIDEOS: ServerTheoryVideo[] = [];
 
-export function isSystemVideo(_video: Partial<ServerTheoryVideo>): boolean {
-  // STRICT ZERO-FAKE POLICY: No system/mock videos exist in the system.
-  return false;
+export function isSystemVideo(video: Partial<ServerTheoryVideo> | null | undefined): boolean {
+  if (!video) return false;
+  return (
+    video.type === "SYSTEM_VIDEO" ||
+    video.type === "SYSTEM" ||
+    video.status === "SYSTEM" ||
+    String(video.id).startsWith("system-") ||
+    String(video.ownerId) === "system"
+  );
 }
 
-export function isTeacherVideo(video: Partial<ServerTheoryVideo>): boolean {
+export function isTeacherVideo(video: Partial<ServerTheoryVideo> | null | undefined): boolean {
   return !isSystemVideo(video);
 }
 
@@ -802,6 +808,8 @@ export class PersistentTheoryVideoStorage {
     }
 
     if (shapeFolder) {
+      candidatePaths.push(path.join(cwd, "public", "videos", "geometry", shapeFolder, `hinh-${shapeFolder === "cylinder" ? "tru" : shapeFolder === "cone" ? "non" : "cau"}.mp4`));
+      candidatePaths.push(path.join(cwd, "public", "videos", "geometry", shapeFolder, video.fileName || ""));
       candidatePaths.push(path.join(cwd, "public", "videos", "theory", shapeFolder, video.fileName || ""));
       candidatePaths.push(path.join(cwd, "public", "videos", "theory", shapeFolder, path.basename(video.storagePath || "")));
       candidatePaths.push(path.join(cwd, "uploads", "videos", "theory", shapeFolder, video.fileName || ""));
@@ -852,38 +860,75 @@ export class PersistentTheoryVideoStorage {
       }
     }
 
-    if (!videoId) {
-      return { hasVideo: false, video: null, error: "Chưa có video được gán cho hình này" };
+    if (videoId) {
+      const video = this.getVideoById(videoId);
+      if (video) {
+        const physicalCheck = this.verifyPhysicalVideoExists(video);
+        if (physicalCheck.exists) {
+          const currentStatus = String(video.status);
+          if (currentStatus === "PUBLISHED" || currentStatus === "ACTIVE" || currentStatus === "PENDING_STORAGE") {
+            return {
+              hasVideo: true,
+              video: {
+                ...video,
+                status: "PUBLISHED",
+                fileSize: physicalCheck.size,
+                size: physicalCheck.size
+              }
+            };
+          }
+        }
+      }
     }
 
-    const video = this.getVideoById(videoId);
-    if (!video) {
-      return { hasVideo: false, video: null, error: "Không tìm thấy video trong cơ sở dữ liệu" };
-    }
-
-    // Zero-fake / Physical verification check:
-    const physicalCheck = this.verifyPhysicalVideoExists(video);
-    if (!physicalCheck.exists) {
-      return {
-        hasVideo: false,
-        video: null,
-        error: "Video bài học chưa được giáo viên cung cấp."
-      };
-    }
-
-    const currentStatus = String(video.status);
-    if (currentStatus !== "PUBLISHED" && currentStatus !== "ACTIVE" && currentStatus !== "PENDING_STORAGE") {
-      return { hasVideo: false, video: null, error: "Video bài học chưa được giáo viên cung cấp." };
+    // SYSTEM FIXED VIDEO RESOLVER (Canonical Repository Videos)
+    const shapeSlug = shape === "cylinder" ? "tru" : shape === "cone" ? "non" : "cau";
+    const fixedPath = path.join(process.cwd(), "public", "videos", "geometry", shape, `hinh-${shapeSlug}.mp4`);
+    if (fs.existsSync(fixedPath)) {
+      try {
+        const stat = fs.statSync(fixedPath);
+        if (stat.size > 0) {
+          const shapeNameVn = shape === "cylinder" ? "Hình Trụ" : shape === "cone" ? "Hình Nón" : "Hình Cầu";
+          const fixedVideo: ServerTheoryVideo = {
+            id: `system-fixed-${shape}`,
+            title: `Khám phá ${shapeNameVn}`,
+            description: `Video bài học ${shapeNameVn} chuẩn sách giáo khoa Toán 9`,
+            shape,
+            topic: (shape.toUpperCase()) as any,
+            section: "THEORY",
+            videoUrl: `/videos/geometry/${shape}/hinh-${shapeSlug}.mp4`,
+            downloadURL: `/videos/geometry/${shape}/hinh-${shapeSlug}.mp4`,
+            thumbnailURL: `/videos/geometry/${shape}/${shapeSlug}_poster.jpg`,
+            thumbnailUrl: `/videos/geometry/${shape}/${shapeSlug}_poster.jpg`,
+            fileSize: stat.size,
+            size: stat.size,
+            duration: "05:00",
+            durationSeconds: 300,
+            status: "PUBLISHED",
+            type: "SYSTEM_VIDEO",
+            order: 1,
+            author: CANONICAL_AUTHOR,
+            authorName: CANONICAL_AUTHOR,
+            createdBy: CANONICAL_AUTHOR,
+            createdAt: 1716000000000,
+            updatedAt: Date.now(),
+            publishedAt: 1716000000000,
+            viewCount: 0
+          };
+          return {
+            hasVideo: true,
+            video: fixedVideo
+          };
+        }
+      } catch (e) {
+        console.warn("[STORAGE] Error checking fixed video:", e);
+      }
     }
 
     return {
-      hasVideo: true,
-      video: {
-        ...video,
-        status: "PUBLISHED",
-        fileSize: physicalCheck.size,
-        size: physicalCheck.size
-      }
+      hasVideo: false,
+      video: null,
+      error: "Video bài học chưa được giáo viên cung cấp."
     };
   }
 

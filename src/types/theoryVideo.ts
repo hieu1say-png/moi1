@@ -23,7 +23,7 @@ export type VideoSection =
   | 'CHALLENGE'
   | 'SUMMARY';
 
-export type VideoStatus = 'SYSTEM' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'PENDING_STORAGE';
+export type VideoStatus = 'SYSTEM' | 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'PENDING_STORAGE';
 
 export type VideoSourceType = 'TEACHER_PROVIDED';
 
@@ -61,7 +61,7 @@ export interface TheoryVideo {
   shape?: ShapeType;
   lessonId?: string;
   sectionId?: string;
-  type?: 'SYSTEM' | 'TEACHER';
+  type?: 'SYSTEM' | 'TEACHER' | 'SYSTEM_VIDEO' | 'TEACHER_VIDEO';
   ownerId?: string;
   storagePath?: string;
   downloadURL?: string;

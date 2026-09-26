@@ -820,12 +820,9 @@ app.get("/api/health", (_req, res) => {
       let list = PersistentTheoryVideoStorage.getAllVideos();
 
       if (!user || user.role === "student" || publishedOnly === "true" || publishedOnly === "1") {
-        // Students and guests → READ all published syllabus videos & system videos
+        // Students and guests → VIEW ONLY published syllabus videos & system videos
         list = list.filter(
-          (v) =>
-            isSystemVideo(v) ||
-            v.status === "PUBLISHED" ||
-            (v.visibility === "public" || v.visibility === "class" || !v.visibility)
+          (v) => isSystemVideo(v) || v.status === "PUBLISHED"
         );
       } else if (user.role === "teacher") {
         // Teacher → Can read all videos, optionally filtered by status
@@ -1106,8 +1103,8 @@ app.get("/api/health", (_req, res) => {
         return res.status(404).json({ error: "Không tìm thấy video bài giảng" });
       }
 
-      // Public lesson access for published or system videos
-      if (isSystemVideo(video) || video.status === "PUBLISHED" || video.visibility === "public") {
+      // Public lesson access strictly for published or system videos
+      if (isSystemVideo(video) || video.status === "PUBLISHED") {
         return res.json(video);
       }
 
@@ -1150,7 +1147,7 @@ app.get("/api/health", (_req, res) => {
       }
 
       // Published videos and system videos are fully accessible without requiring teacher login
-      if (isSystemVideo(video) || video.status === "PUBLISHED" || video.visibility === "public") {
+      if (isSystemVideo(video) || video.status === "PUBLISHED") {
         // ALLOWED
       } else {
         if (!user) {
@@ -1405,6 +1402,43 @@ downloadURL: ${video.videoUrl}`);
       res.json({ success: true, video: updated });
     } catch (err: any) {
       res.status(500).json({ error: "Lỗi cập nhật video", message: err.message });
+    }
+  });
+
+  // POST publish video (Teacher action ONLY - PUBLISH)
+  app.post("/api/theory-videos/:id/publish", requireTeacherAuth, (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+      const existing = PersistentTheoryVideoStorage.getVideoById(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Video không tồn tại" });
+      }
+      if (isSystemVideo(existing)) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Video chuẩn hệ thống đã ở trạng thái PUBLISHED mặc định."
+        });
+      }
+      const isOwner =
+        !existing.authorId ||
+        existing.authorId === user.userId ||
+        existing.ownerId === user.userId ||
+        user.userId === "usr-teacher-001" ||
+        user.username === "hieu1say";
+      if (!isOwner) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Bạn không có quyền xuất bản video của giáo viên khác."
+        });
+      }
+      const updated = PersistentTheoryVideoStorage.updateVideo(id, {
+        status: "PUBLISHED",
+        publishedAt: Date.now()
+      });
+      res.json({ success: true, message: "Đã xuất bản video thành công", video: updated });
+    } catch (err: any) {
+      res.status(500).json({ error: "Lỗi xuất bản video", message: err.message });
     }
   });
 
