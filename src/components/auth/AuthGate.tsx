@@ -37,10 +37,21 @@ export const AuthGate: React.FC = () => {
     studentSession,
     teacherSession,
     activeRole,
-    isStudentAuthenticated,
     isTeacherAuthenticated,
     isStudentPreview
   } = useAuth();
+
+  const [currentHash, setCurrentHash] = React.useState<string>(() => {
+    return typeof window !== 'undefined' ? window.location.hash : '';
+  });
+
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // 1. STATE: LOADING
   // Show minimal pedagogical loading screen while sessions are restored from storage
@@ -52,28 +63,25 @@ export const AuthGate: React.FC = () => {
     return <SessionLoading />;
   }
 
-  const isStudentAuth =
-    isStudentAuthenticated &&
-    studentSession.status === 'AUTHENTICATED' &&
-    !!studentSession.user;
-
   const isTeacherAuth =
     isTeacherAuthenticated &&
     teacherSession.status === 'AUTHENTICATED' &&
     !!teacherSession.user;
 
-  // 2. STATE: UNAUTHENTICATED
-  // If neither role is authenticated or active role is not valid, render clean Login Page
-  // NO AppShell, NO Header, NO Sidebar, NO 3D Canvas, NO content views rendered
-  if (
-    (!isStudentAuth && !isTeacherAuth) ||
-    !activeRole ||
-    (activeRole === 'student' && !isStudentAuth) ||
-    (activeRole === 'teacher' && !isTeacherAuth)
-  ) {
+  // 2. EXPLICIT TEACHER LOGIN REQUEST
+  // Only show login page when someone explicitly wants teacher administration access
+  const isTeacherLoginRequested =
+    currentHash === '#/login' ||
+    currentHash === '#/teacher-login' ||
+    currentHash.startsWith('#/login');
+
+  if (isTeacherLoginRequested && !isTeacherAuth) {
     return (
       <LoginPage
-        initialMode={activeRole === 'teacher' || (!isStudentAuth && isTeacherAuth) ? 'teacher' : 'student'}
+        initialMode="teacher"
+        onSuccessRedirect={() => {
+          window.location.hash = '#/teacher-dashboard';
+        }}
       />
     );
   }
@@ -103,7 +111,7 @@ export const AuthGate: React.FC = () => {
     );
   }
 
-  // 4. STATE: STUDENT_AUTHENTICATED
+  // 4. STATE: OPEN STUDENT ACCESS (NO LOGIN REQUIRED FOR STUDENTS)
   // Student enters directly into Student Dashboard & 3D Geometry Laboratory
   return (
     <AppProvider initialRole="student" initialRoute="/home">

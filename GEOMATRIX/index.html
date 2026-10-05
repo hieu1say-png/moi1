@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><?= appName ?></title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- KaTeX for High-Performance Math Formula Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  
+  <!-- Three.js for 3D Geometry Interactive Models -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- Include Stylesheet -->
+  <?!= include('styles'); ?>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- 1. TOP HEADER MASTHEAD -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-logo">G</div>
+        <div>
+          <h1 class="brand-title">GEOMATRIX</h1>
+          <div class="brand-subtitle">Phòng Thí Nghiệm Hình Học 9 • Google Drive Video Storage</div>
+        </div>
+      </div>
+
+      <!-- Quick Shape Switcher -->
+      <div class="shape-selector-pill">
+        <button type="button" class="shape-btn active" data-shape="cylinder" onclick="switchShape('cylinder')">
+          <span>🟢 Hình Trụ</span>
+        </button>
+        <button type="button" class="shape-btn" data-shape="cone" onclick="switchShape('cone')">
+          <span>🟠 Hình Nón</span>
+        </button>
+        <button type="button" class="shape-btn" data-shape="sphere" onclick="switchShape('sphere')">
+          <span>🔵 Hình Cầu</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. NAVIGATION TABS BAR -->
+    <nav class="nav-tabs-bar">
+      <button type="button" class="nav-tab-item active" data-tab="home" onclick="switchTab('home')">
+        <span>🏠</span> <span>Trang chủ</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="theory" onclick="switchTab('theory')">
+        <span>📚</span> <span>Lý thuyết & Video</span>
+        <span class="nav-tab-badge">SGK</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="lab3d" onclick="switchTab('lab3d')">
+        <span>🧊</span> <span>3D Lab Thực Nghiệm</span>
+        <span class="nav-tab-badge">Mô hình</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="videos" onclick="switchTab('videos')">
+        <span>🎬</span> <span>Ngân Hàng Video Drive</span>
+        <span class="nav-tab-badge" style="background:#15803D; color:#fff;">Google Drive</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="practice" onclick="switchTab('practice')">
+        <span>📝</span> <span>Luyện Tập & Bẫy Đề 10</span>
+        <span class="nav-tab-badge">4 Bước</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="stem" onclick="switchTab('stem')">
+        <span>🌐</span> <span>STEM Đời Thực</span>
+      </button>
+      <button type="button" class="nav-tab-item" data-tab="teacher" onclick="switchTab('teacher')">
+        <span>👨‍🏫</span> <span>Quản Trị Giáo Viên</span>
+      </button>
+    </nav>
+
+    <!-- ===================================================================
+         VIEW 1: TRANG CHỦ (HOME DASHBOARD)
+         =================================================================== -->
+    <section id="view-home" class="tab-view-content active">
+      <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color:#FFFFFF; border-radius:20px; padding:32px 28px; margin-bottom:24px; box-shadow:0 10px 25px rgba(15,23,42,0.15);">
+        <div style="max-width:720px;">
+          <div style="display:inline-block; font-size:11px; font-weight:800; padding:4px 10px; border-radius:8px; background:rgba(22,163,74,0.25); color:#86EFAC; border:1px solid rgba(134,239,172,0.3); margin-bottom:12px; text-transform:uppercase;">
+            🚀 Nền tảng Web App trên Google Apps Script
+          </div>
+          <h2 style="font-size:24px; font-weight:800; line-height:1.3; margin-bottom:10px;">
+            Khám Phá Trực Quan Hình Học Không Gian Lớp 9
+          </h2>
+          <p style="font-size:14px; color:#94A3B8; line-height:1.6; margin-bottom:20px;">
+            Hệ thống bài giảng video lưu trữ vĩnh viễn trên <strong>Google Drive</strong>, đồng bộ dữ liệu điểm số và tiến trình với <strong>Google Sheets</strong>, tích hợp phòng thí nghiệm 3D tương tác xoay cắt mô hình và sơ đồ giải bài chuẩn 4 bước sư phạm.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <button class="btn btn-primary" onclick="switchTab('lab3d')" style="padding:10px 20px; font-size:13px;">
+              <span>🧊 Mở Phòng 3D Lab</span>
+            </button>
+            <button class="btn btn-outline" onclick="switchTab('videos')" style="padding:10px 20px; font-size:13px; background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2);">
+              <span>🎬 Xem Ngân Hàng Video</span>
+            </button>
+            <button class="btn btn-outline" onclick="openUploadModal()" style="padding:10px 20px; font-size:13px; background:#16A34A; color:#fff; border-color:#16A34A;">
+              <span>📤 Tải Lên Video Bài Giảng</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khối 3 Chủ Đề Cốt Lõi -->
+      <div class="grid-3" style="margin-bottom:24px;">
+        <!-- Card Hình Trụ -->
+        <div class="card" style="border-top:4px solid #16A34A;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:22px;">🟢</span>
+            <div>
+              <h3 style="font-size:16px; font-weight:800; color:#0F172A;">Hình Trụ (Cylinder)</h3>
+              <p style="font-size:11px; color:#64748B;">Sự quay của hình chữ nhật</p>
+            </div>
+          </div>
+          <div class="formula-badge-box">
+            <div style="font-size:12px; margin-bottom:4px;">$S_{xq} = 2\pi rh$</div>
+            <div style="font-size:12px; margin-bottom:4px;">$S_{tp} = 2\pi rh + 2\pi r^2$</div>
+            <div style="font-size:12px;">$V = \pi r^2 h$</div>
+          </div>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="switchShape('cylinder'); switchTab('lab3d');">
+            <span>Khám phá 3D Hình Trụ →</span>
+          </button>
+        </div>
+
+        <!-- Card Hình Nón -->
+        <div class="card" style="border-top:4px solid #EA580C;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:22px;">🟠</span>
+            <div>
+              <h3 style="font-size:16px; font-weight:800; color:#0F172A;">Hình Nón (Cone)</h3>
+              <p style="font-size:11px; color:#64748B;">Sự quay của tam giác vuông</p>
+            </div>
+          </div>
+          <div class="formula-badge-box">
+            <div style="font-size:12px; margin-bottom:4px;">$l = \sqrt{r^2 + h^2}$</div>
+            <div style="font-size:12px; margin-bottom:4px;">$S_{xq} = \pi rl$</div>
+            <div style="font-size:12px;">$V = \frac{1}{3}\pi r^2 h$</div>
+          </div>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="switchShape('cone'); switchTab('lab3d');">
+            <span>Khám phá 3D Hình Nón →</span>
+          </button>
+        </div>
+
+        <!-- Card Hình Cầu -->
+        <div class="card" style="border-top:4px solid #0284C7;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <span style="font-size:22px;">🔵</span>
+            <div>
+              <h3 style="font-size:16px; font-weight:800; color:#0F172A;">Hình Cầu (Sphere)</h3>
+              <p style="font-size:11px; color:#64748B;">Sự quay của nửa hình tròn</p>
+            </div>
+          </div>
+          <div class="formula-badge-box">
+            <div style="font-size:12px; margin-bottom:4px;">$S = 4\pi R^2 = \pi d^2$</div>
+            <div style="font-size:12px;">$V = \frac{4}{3}\pi R^3$</div>
+          </div>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="switchShape('sphere'); switchTab('lab3d');">
+            <span>Khám phá 3D Hình Cầu →</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 2: LÝ THUYẾT & VIDEO BÀI GIẢNG (THEORY & LESSON VIDEO)
+         =================================================================== -->
+    <section id="view-theory" class="tab-view-content">
+      <div class="grid-2">
+        <!-- Khung Video Bài Giảng Chính Thức -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🎬</span> <span>Video Bài Giảng: <span class="current-shape-name">Hình Trụ</span></span>
+            </div>
+            <button class="btn btn-outline" onclick="openUploadModal()">
+              <span>📤 Đổi Video Khác</span>
+            </button>
+          </div>
+
+          <div style="position:relative; width:100%; padding-top:56.25%; background:#000; border-radius:14px; overflow:hidden; margin-bottom:12px;">
+            <iframe id="lesson-video-iframe" src="" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="autoplay" allowfullscreen></iframe>
+            <div id="lesson-video-empty" style="position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px;">
+              <div style="font-size:32px; margin-bottom:8px;">📼</div>
+              <p style="font-size:13px; font-weight:700;">Chưa có video chính thức cho chủ đề này</p>
+              <button class="btn btn-primary" onclick="openUploadModal()" style="margin-top:10px;">Tải video lên Google Drive</button>
+            </div>
+          </div>
+
+          <h4 id="lesson-video-title" style="font-size:15px; font-weight:800; color:#0F172A; margin-bottom:4px;">
+            Bài giảng chuẩn SGK Toán 9
+          </h4>
+          <p id="lesson-video-desc" style="font-size:12px; color:#64748B; line-height:1.5;">
+            Quan sát trực quan mô hình quay không gian, phân biệt rõ các yếu tố bán kính đáy, chiều cao, đường sinh và cách chứng minh công thức.
+          </p>
+        </div>
+
+        <!-- Khung Bảng Công Thức & Kiến Thức Cốt Lõi -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>📖</span> <span>Tóm Tắt Công Thức & Dấu Ấn Kiến Thức</span>
+            </div>
+          </div>
+
+          <div class="formula-badge-box">
+            <h5 style="font-size:13px; font-weight:800; color:#0F172A; margin-bottom:8px;">Bảng Tra Cứu Nhanh:</h5>
+            <div class="formula-row">
+              <span>Diện tích xung quanh:</span>
+              <span class="formula-val" id="theory-formula-sxq">$S_{xq} = 2\pi rh$</span>
+            </div>
+            <div class="formula-row">
+              <span>Diện tích toàn phần:</span>
+              <span class="formula-val" id="theory-formula-stp">$S_{tp} = 2\pi rh + 2\pi r^2$</span>
+            </div>
+            <div class="formula-row">
+              <span>Thể tích không gian:</span>
+              <span class="formula-val" id="theory-formula-v">$V = \pi r^2 h$</span>
+            </div>
+          </div>
+
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px; margin-top:16px;">
+            <h5 style="font-size:13px; font-weight:800; color:#B45309; display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+              <span>⚠️</span> Lưu ý bẫy đề thi tuyển sinh vào 10:
+            </h5>
+            <ul style="font-size:12px; color:#475569; padding-left:18px; line-height:1.6;">
+              <li>Đề bài hay cho <strong>đường kính đáy $d$</strong> thay vì bán kính $r$, học sinh dễ quên chia 2 ($r = d/2$).</li>
+              <li>Diện tích xung quanh hình nón chỉ có 1 đáy tròn, không được nhầm lẫn nhân đôi như hình trụ.</li>
+              <li>Thể tích khối cầu có số mũ 3 ($R^3$) và hệ số $4/3$, diện tích mặt cầu có hệ số 4 và số mũ 2 ($R^2$).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 3: 3D LAB THỰC NGHIỆM (THREE.JS INTERACTIVE LAB)
+         =================================================================== -->
+    <section id="view-lab3d" class="tab-view-content">
+      <div class="grid-12">
+        <!-- Cột Trái (8 phần): Viewport 3D Canvas -->
+        <div style="grid-column: span 8;" class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🧊</span> <span>Phòng Thí Nghiệm 3D: <span class="current-shape-name">Hình Trụ</span></span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline" onclick="reset3DView()" title="Đặt lại góc nhìn">
+                <span>🔄 Đặt lại góc nhìn</span>
+              </button>
+              <button class="btn btn-outline" onclick="toggleWireframe()" title="Bật/Tắt khung dây">
+                <span>🕸️ Khung dây</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="canvas-3d-wrapper" id="three-container">
+            <canvas id="three-canvas"></canvas>
+            <div class="canvas-watermark">GEOMATRIX • Dùng chuột kéo hoặc chạm tay để xoay 360°</div>
+          </div>
+        </div>
+
+        <!-- Cột Phải (4 phần): Bảng Điều Khiển & Tính Toán Tức Thì -->
+        <div style="grid-column: span 4;" class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>⚙️</span> <span>Thông Số Tương Tác</span>
+            </div>
+          </div>
+
+          <!-- Thanh trượt Bán kính đáy r -->
+          <div class="param-control-group">
+            <div class="param-label-row">
+              <span>Bán kính đáy ($r$):</span>
+              <span id="val-radius" style="font-family:var(--font-mono); font-weight:bold; color:#15803D;">3 cm</span>
+            </div>
+            <input type="range" class="param-slider" id="slider-radius" min="1" max="10" step="0.5" value="3" oninput="onParamChange('r', this.value)">
+          </div>
+
+          <!-- Thanh trượt Chiều cao h -->
+          <div class="param-control-group" id="control-box-height">
+            <div class="param-label-row">
+              <span>Chiều cao ($h$):</span>
+              <span id="val-height" style="font-family:var(--font-mono); font-weight:bold; color:#15803D;">6 cm</span>
+            </div>
+            <input type="range" class="param-slider" id="slider-height" min="1" max="15" step="0.5" value="6" oninput="onParamChange('h', this.value)">
+          </div>
+
+          <!-- Kết Quả Tính Toán Trực Quan -->
+          <div class="formula-badge-box" style="margin-top:16px;">
+            <div style="font-size:12px; font-weight:800; color:#0F172A; margin-bottom:8px; border-bottom:1px solid #E2E8F0; padding-bottom:6px;">
+              📊 Kết Quả Tính Toán Trực Tuyến:
+            </div>
+            
+            <div class="formula-row" id="calc-row-l" style="display:none;">
+              <span>Đường sinh ($l$):</span>
+              <span class="formula-val" id="calc-res-l">5.00 cm</span>
+            </div>
+
+            <div class="formula-row" id="calc-row-sxq">
+              <span>Diện tích xung quanh ($S_{xq}$):</span>
+              <span class="formula-val" id="calc-res-sxq">113.10 cm²</span>
+            </div>
+
+            <div class="formula-row" id="calc-row-stp">
+              <span>Diện tích toàn phần ($S_{tp}$):</span>
+              <span class="formula-val" id="calc-res-stp">169.65 cm²</span>
+            </div>
+
+            <div class="formula-row" id="calc-row-v">
+              <span>Thể tích không gian ($V$):</span>
+              <span class="formula-val" id="calc-res-v">169.65 cm³</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 4: NGÂN HÀNG VIDEO GOOGLE DRIVE (VIDEO BANK)
+         =================================================================== -->
+    <section id="view-videos" class="tab-view-content">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h3 style="font-size:18px; font-weight:800; color:#0F172A;">Kho Video Bài Giảng Google Drive</h3>
+            <p style="font-size:12px; color:#64748B;">Lưu trữ vĩnh viễn trên Drive, không bao giờ mất URL khi tải lại trang</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="loadInitialData()">
+              <span>🔄 Làm mới danh sách</span>
+            </button>
+            <button class="btn btn-primary" onclick="openUploadModal()">
+              <span>📤 Tải Lên Video Mới</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danh Sách Video Grid -->
+      <div id="video-bank-grid" class="video-grid">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 5: LUYỆN TẬP & BẪY ĐỀ THI 10 (PRACTICE)
+         =================================================================== -->
+    <section id="view-practice" class="tab-view-content">
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="font-size:16px; font-weight:800; color:#0F172A; margin-bottom:4px;">
+          Bộ Đề Thi Thử Tuyển Sinh 10 – Hình Học Không Gian
+        </h3>
+        <p style="font-size:12px; color:#64748B;">
+          Mỗi bài toán đều được tích hợp phương pháp phân tích 4 bước chuẩn sư phạm và chẩn đoán bẫy sai lầm thường gặp.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Bài Tập 1: Hình Trụ -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#15803D;">HÌNH TRỤ</span>
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#F1F5F9; color:#475569;">ĐỀ TUYỂN SINH 10</span>
+          </div>
+          <h4 style="font-size:14px; font-weight:800; color:#0F172A; margin-bottom:6px;">
+            Tính diện tích xung quanh lon nước ngọt
+          </h4>
+          <p style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:14px;">
+            Bán kính đáy $r = 3\text{ cm}$, chiều cao $h = 10\text{ cm}$. Tìm $S_{xq}$ vỏ lon.
+          </p>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="openExerciseDetail('EX-CYL-01')">
+            <span>🎯 Xem Lời Giải 4 Bước</span>
+          </button>
+        </div>
+
+        <!-- Bài Tập 2: Hình Nón -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#FFEDD5; color:#EA580C;">HÌNH NÓN</span>
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#F1F5F9; color:#475569;">THỰC TẾ</span>
+          </div>
+          <h4 style="font-size:14px; font-weight:800; color:#0F172A; margin-bottom:6px;">
+            Độ dài đường sinh và thể tích nón lá
+          </h4>
+          <p style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:14px;">
+            Đường kính đáy $d = 40\text{ cm}$, chiều cao $h = 15\text{ cm}$. Tìm $l$ và $V$.
+          </p>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="openExerciseDetail('EX-CON-01')">
+            <span>🎯 Xem Lời Giải 4 Bước</span>
+          </button>
+        </div>
+
+        <!-- Bài Tập 3: Hình Cầu -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#E0F2FE; color:#0284C7;">HÌNH CẦU</span>
+            <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#F1F5F9; color:#475569;">KHỐI CẦU</span>
+          </div>
+          <h4 style="font-size:14px; font-weight:800; color:#0F172A; margin-bottom:6px;">
+            Diện tích và thể tích quả địa cầu
+          </h4>
+          <p style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:14px;">
+            Quả địa cầu bán kính $R = 12\text{ cm}$. Tính $S$ mặt cầu và $V$ thể tích.
+          </p>
+          <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="openExerciseDetail('EX-SPH-01')">
+            <span>🎯 Xem Lời Giải 4 Bước</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 6: STEM ĐỜI THỰC (REAL WORLD)
+         =================================================================== -->
+    <section id="view-stem" class="tab-view-content">
+      <div class="grid-3">
+        <div class="card">
+          <div style="font-size:32px; margin-bottom:8px;">🥤</div>
+          <h4 style="font-size:15px; font-weight:800; color:#0F172A; margin-bottom:4px;">Lon Nước Ngọt 330ml (Hình Trụ)</h4>
+          <p style="font-size:12px; color:#64748B; line-height:1.5; margin-bottom:12px;">
+            Ứng dụng hình trụ trong công nghiệp bao bì: Tối ưu diện tích bề mặt kim loại nhôm để giảm giá thành sản xuất mà vẫn đạt thể tích chứa tiêu chuẩn 330ml.
+          </p>
+          <div style="font-size:11px; font-weight:700; color:#15803D;">$V = \pi r^2 h \approx 330\text{ cm}^3$</div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:32px; margin-bottom:8px;">👒</div>
+          <h4 style="font-size:15px; font-weight:800; color:#0F172A; margin-bottom:4px;">Nón Lá Huế Truyền Thống (Hình Nón)</h4>
+          <p style="font-size:12px; color:#64748B; line-height:1.5; margin-bottom:12px;">
+            Mặt nón giúp nước mưa thoát nhanh nhất theo các đường sinh. Diện tích lá cọ cần dùng tương ứng với diện tích xung quanh $S_{xq} = \pi rl$.
+          </p>
+          <div style="font-size:11px; font-weight:700; color:#EA580C;">Đường sinh $l = \sqrt{r^2 + h^2}$</div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:32px; margin-bottom:8px;">⚖️</div>
+          <h4 style="font-size:15px; font-weight:800; color:#0F172A; margin-bottom:4px;">Nghịch Lý Archimedes (Hình Cầu)</h4>
+          <p style="font-size:12px; color:#64748B; line-height:1.5; margin-bottom:12px;">
+            Quan hệ kinh điển giữa Thể tích Hình Cầu và Hình Trụ ngoại tiếp: Thể tích khối cầu bằng đúng $2/3$ thể tích hình trụ có cùng bán kính đáy và chiều cao $h = 2R$.
+          </p>
+          <div style="font-size:11px; font-weight:700; color:#0284C7;">$V_{\text{cầu}} = \frac{2}{3} V_{\text{trụ ngoại tiếp}}$</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 7: QUẢN TRỊ GIÁO VIÊN (TEACHER DASHBOARD)
+         =================================================================== -->
+    <section id="view-teacher" class="tab-view-content">
+      <div class="grid-2">
+        <!-- Thông số lưu trữ Google Drive -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>📊</span> <span>Tình Trạng Kho Lưu Trữ Google Drive</span>
+            </div>
+            <button class="btn btn-outline" onclick="loadInitialData()">Làm mới</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:11px; color:#64748B; font-weight:bold;">TỔNG SỐ VIDEO DRIVE</div>
+              <div id="stat-video-count" style="font-size:24px; font-weight:800; color:#0F172A; margin-top:4px;">0</div>
+            </div>
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px; text-align:center;">
+              <div style="font-size:11px; color:#64748B; font-weight:bold;">DUNG LƯỢNG ĐÃ DÙNG</div>
+              <div id="stat-storage-size" style="font-size:24px; font-weight:800; color:#15803D; margin-top:4px;">0 MB</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a id="link-drive-folder" href="#" target="_blank" class="btn btn-outline" style="justify-content:center;">
+              <span>📁 Mở Thư Mục GEOMATRIX_VIDEO_STORAGE Trên Drive ↗</span>
+            </a>
+            <a id="link-database-sheet" href="#" target="_blank" class="btn btn-outline" style="justify-content:center;">
+              <span>📊 Mở Bảng Dữ Liệu GEOMATRIX_DATABASE Trên Google Sheets ↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tải lên nhanh -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>📤</span> <span>Tải Lên Video Bài Giảng Mới</span>
+            </div>
+          </div>
+          <p style="font-size:12px; color:#64748B; line-height:1.5; margin-bottom:16px;">
+            Giáo viên có thể trực tiếp tải file video bài giảng từ máy tính lên Google Drive. Hệ thống sẽ tự động gán quyền chia sẻ công khai và cập nhật danh sách bài học ngay lập tức.
+          </p>
+          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="openUploadModal()">
+            <span>🚀 Mở Trình Tải Lên Video</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Include Modals & Reusable Components -->
+  <?!= include('components'); ?>
+
+  <!-- Include JavaScript Scripts -->
+  <?!= include('scripts'); ?>
+</body>
+</html>

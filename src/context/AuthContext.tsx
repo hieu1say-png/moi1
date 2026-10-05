@@ -54,12 +54,45 @@ export const DEFAULT_TEACHER: TeacherAccount = {
   status: 'ACTIVE'
 };
 
+// Default Active Student Identity (No student login required)
+export const DEFAULT_STUDENT: StudentAccount = {
+  id: 'std_default',
+  username: 'hocsinh',
+  fullName: 'Học sinh Lớp 9',
+  className: 'Lớp 9A2',
+  classId: 'cls-9a2',
+  school: 'Trường Phổ Thông Thực Hành Sư Phạm',
+  status: 'ACTIVE',
+  createdAt: '2026-08-01T08:00:00Z',
+  lastActiveAt: '2026-10-05T00:00:00Z',
+  firstLoginAt: '2026-08-01T08:00:00Z',
+  loginCount: 1,
+  requirePasswordChange: false,
+  role: 'student',
+  progress: {
+    cylinder: 80,
+    cone: 65,
+    sphere: 70,
+    net: 55,
+    crossSection: 50
+  },
+  xp: 320,
+  level: 2,
+  streakDays: 4,
+  wrongCount: 2,
+  hintsUsed: 3,
+  learningEventsCount: 28,
+  studyTimeMinutes: 120,
+  targetExamScore: 9.5,
+  accuracyRate: 92,
+  teacherId: 'teacher_hieu1say'
+};
+
 // Initial Mock Students
 export const INITIAL_STUDENTS: StudentAccount[] = [
   {
     id: 'std-001',
-    username: 'demo9a2',
-    password: 'Demo@123',
+    username: 'minh9a2',
     fullName: 'Nguyễn Văn Minh',
     className: 'Lớp 9A2',
     classId: 'cls-9a2',
@@ -87,7 +120,7 @@ export const INITIAL_STUDENTS: StudentAccount[] = [
     studyTimeMinutes: 145,
     targetExamScore: 9.5,
     accuracyRate: 92,
-    teacherId: 'usr-teacher-001'
+    teacherId: 'teacher_hieu1say'
   },
   {
     id: 'std-002',
@@ -381,7 +414,8 @@ function getInitialStudentSession(): StudentSession {
     console.warn('[SESSION] Failed to restore student session:', err);
   }
 
-  return { status: 'UNAUTHENTICATED', user: null, isAuthenticated: false };
+  // Default: student is always open and authenticated without requiring login
+  return { status: 'AUTHENTICATED', user: DEFAULT_STUDENT, isAuthenticated: true };
 }
 
 // Synchronously read initial teacher session from localStorage
@@ -490,10 +524,7 @@ function getInitialActiveRole(
   if (studentSess.isAuthenticated) {
     return 'student';
   }
-  if (teacherSess.isAuthenticated) {
-    return 'teacher';
-  }
-  return null;
+  return 'student';
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

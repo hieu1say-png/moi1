@@ -4,7 +4,6 @@ import { MainContent } from './MainContent';
 import { ToastContainer } from '../common/Toast';
 import { SearchModal } from './SearchModal';
 import { useApp } from '../../context/AppContext';
-import { TeacherDock } from '../teacher-ai/TeacherDock';
 import { SpatialProfileModal } from '../spatial-profile/SpatialProfileModal';
 import { MasteryCheckModal } from '../common/MasteryCheckModal';
 import { useTeacherAI } from '../teacher-ai/TeacherContext';
@@ -34,9 +33,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
       {/* Dynamic Main Content View */}
       <MainContent>{children}</MainContent>
-
-      {/* Thầy Hiếu AI Smart Dock (Active everywhere except full AI View to prevent duplication) */}
-      {currentRoute !== '/ai' && <TeacherDock />}
 
       {/* Global Spatial Thinking Profile Modal */}
       <SpatialProfileModal

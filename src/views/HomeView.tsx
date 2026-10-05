@@ -28,7 +28,6 @@ import {
   Star,
   Trophy,
   ArrowRight,
-  Bot,
   ChevronRight,
   FileCheck,
   GraduationCap,
@@ -38,7 +37,6 @@ import {
   CheckCircle2,
   Globe2,
   Flame,
-  HelpCircle,
   Play
 } from 'lucide-react';
 import { ShapeType } from '../types';
@@ -71,11 +69,6 @@ export const HomeView: React.FC = () => {
   const handleOpenJourney = (shapeId: ShapeType) => {
     setSelectedShape(shapeId);
     setJourneyModalShape(shapeId);
-  };
-
-  const handleAskAIWithPrompt = (promptText: string) => {
-    sessionStorage.setItem('geometry_lab_initial_ai_query', promptText);
-    navigateTo('/ai');
   };
 
   // Determine current active topic & progress
@@ -404,137 +397,74 @@ export const HomeView: React.FC = () => {
       </section>
 
       {/* ----------------------------------------------------------------------- */}
-      {/* 4. AI TUTOR PROMPT SUGGESTIONS & LEARNING UTILITIES                     */}
       {/* ----------------------------------------------------------------------- */}
-      <section id="home-ai-and-tools" className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: AI Tutor Prompts */}
-        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/80 p-5 space-y-3.5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Hỏi Thầy Hiếu AI 24/7</h3>
-                <p className="text-xs text-slate-500">Chọn câu hỏi nhanh hoặc nhập thắc mắc của em</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigateTo('/ai')}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-            >
-              <span>Vào AI Tutor</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => handleAskAIWithPrompt('Thầy ơi, vì sao thể tích hình nón lại đúng bằng 1/3 thể tích hình trụ có cùng bán kính đáy và chiều cao?')}
-              className="w-full text-left p-3 rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200/60 transition-colors text-xs text-slate-700 flex items-center justify-between group cursor-pointer"
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <HelpCircle className="w-4 h-4 text-blue-500 shrink-0" />
-                <span>Vì sao thể tích hình nón bằng 1/3 thể tích hình trụ cùng đáy và chiều cao?</span>
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleAskAIWithPrompt('Làm thế nào để phân biệt đường sinh l, bán kính đáy r và chiều cao h trong các bài toán thực tế hình nón?')}
-              className="w-full text-left p-3 rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200/60 transition-colors text-xs text-slate-700 flex items-center justify-between group cursor-pointer"
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <HelpCircle className="w-4 h-4 text-blue-500 shrink-0" />
-                <span>Mẹo phân biệt đường sinh l, bán kính r và chiều cao h của hình nón?</span>
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleAskAIWithPrompt('Thầy hướng dẫn em các dạng toán thực tế thùng phuy, bể nước và nón lá thường gặp trong đề thi tuyển sinh 10?')}
-              className="w-full text-left p-3 rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200/60 transition-colors text-xs text-slate-700 flex items-center justify-between group cursor-pointer"
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <HelpCircle className="w-4 h-4 text-blue-500 shrink-0" />
-                <span>Các dạng toán thực tế hình học không gian hay thi vào Lớp 10?</span>
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </button>
-          </div>
+      {/* 4. LEARNING UTILITIES & CORE PROGRAM                                   */}
+      {/* ----------------------------------------------------------------------- */}
+      <section id="home-learning-tools" className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-4 shadow-xs">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 text-rose-600" />
+            <span>Chương Trình Trọng Tâm</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">Tiện ích tăng tốc ôn luyện và trải nghiệm STEM</p>
         </div>
 
-        {/* Right: Quick Prep & Practice Shortcuts */}
-        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/80 p-5 space-y-3.5 shadow-xs flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-rose-600" />
-              <span>Chương Trình Trọng Tâm</span>
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Tiện ích tăng tốc ôn luyện và trải nghiệm STEM</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <button
+            type="button"
+            onClick={() => navigateTo('/exam-prep')}
+            className="p-3.5 rounded-xl bg-rose-50/70 hover:bg-rose-100 border border-rose-200/70 text-left transition-colors cursor-pointer"
+          >
+            <div className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+              <Timer className="w-3.5 h-3.5 text-rose-600" />
+              <span>Ôn thi vào 10</span>
+            </div>
+            <p className="text-[11px] text-rose-700/80 mt-1 line-clamp-2">
+              10 câu chuẩn hóa, thi thử tính giờ & phân tích bẫy đề thi.
+            </p>
+          </button>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => navigateTo('/exam-prep')}
-              className="p-3 rounded-lg bg-rose-50/70 hover:bg-rose-100 border border-rose-200/70 text-left transition-colors cursor-pointer"
-            >
-              <div className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-                <Timer className="w-3.5 h-3.5 text-rose-600" />
-                <span>Ôn thi vào 10</span>
-              </div>
-              <p className="text-[11px] text-rose-700/80 mt-1 line-clamp-2">
-                10 câu chuẩn hóa, thi thử tính giờ & phân tích bẫy đề thi.
-              </p>
-            </button>
+          <button
+            type="button"
+            onClick={() => navigateTo('/real-world')}
+            className="p-3.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-200/70 text-left transition-colors cursor-pointer"
+          >
+            <div className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+              <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>STEM Thực Tế</span>
+            </div>
+            <p className="text-[11px] text-emerald-700/80 mt-1 line-clamp-2">
+              Lon nước, nón lá, bồn cầu Archimedes đời thực.
+            </p>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => navigateTo('/real-world')}
-              className="p-3 rounded-lg bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-200/70 text-left transition-colors cursor-pointer"
-            >
-              <div className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>STEM Thực Tế</span>
-              </div>
-              <p className="text-[11px] text-emerald-700/80 mt-1 line-clamp-2">
-                Lon nước, nón lá, bồn cầu Archimedes đời thực.
-              </p>
-            </button>
+          <button
+            type="button"
+            onClick={() => navigateTo('/game')}
+            className="p-3.5 rounded-xl bg-indigo-50/70 hover:bg-indigo-100 border border-indigo-200/70 text-left transition-colors cursor-pointer"
+          >
+            <div className="text-xs font-bold text-indigo-800 flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Game 9 Master</span>
+            </div>
+            <p className="text-[11px] text-indigo-700/80 mt-1 line-clamp-2">
+              Trò chơi toán học chậm rãi, tĩnh lặng, ưu tiên tư duy.
+            </p>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => navigateTo('/game')}
-              className="p-3 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 border border-indigo-200/70 text-left transition-colors cursor-pointer"
-            >
-              <div className="text-xs font-bold text-indigo-800 flex items-center gap-1.5">
-                <Trophy className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Game 9 Master</span>
-              </div>
-              <p className="text-[11px] text-indigo-700/80 mt-1 line-clamp-2">
-                Trò chơi toán học chậm rãi, tĩnh lặng, ưu tiên tư duy.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigateTo('/theory')}
-              className="p-3 rounded-lg bg-blue-50/70 hover:bg-blue-100 border border-blue-200/70 text-left transition-colors cursor-pointer"
-            >
-              <div className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                <span>Sổ Tay Công Thức</span>
-              </div>
-              <p className="text-[11px] text-blue-700/80 mt-1 line-clamp-2">
-                Bảng tra cứu công thức, diện tích, thể tích có phân tích.
-              </p>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigateTo('/theory')}
+            className="p-3.5 rounded-xl bg-blue-50/70 hover:bg-blue-100 border border-blue-200/70 text-left transition-colors cursor-pointer"
+          >
+            <div className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+              <span>Sổ Tay Công Thức</span>
+            </div>
+            <p className="text-[11px] text-blue-700/80 mt-1 line-clamp-2">
+              Bảng tra cứu công thức, diện tích, thể tích có phân tích.
+            </p>
+          </button>
         </div>
       </section>
 

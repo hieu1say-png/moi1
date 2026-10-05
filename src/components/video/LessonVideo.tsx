@@ -771,7 +771,7 @@ export const LessonVideo: React.FC<LessonVideoProps> = ({
             <span>Mốc nội dung trọng tâm bài học:</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {markers.map((marker: any, idx: number) => (
+            {(markers ?? []).map((marker: any, idx: number) => (
               <button
                 key={idx}
                 onClick={() => handleSeekTo(marker.time)}

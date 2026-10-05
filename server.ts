@@ -470,56 +470,21 @@ app.get("/api/health", (_req, res) => {
     });
   });
 
-  // Video File Upload Endpoint (Teacher action ONLY)
-  // Legacy / Local fallback route - strictly guarded against Vercel serverless functions
-  app.post("/api/theory-videos/upload", requireTeacherAuth, (req, res, next) => {
-    if (process.env.VERCEL === "1") {
-      return res.status(400).json({
-        error: "Tải tệp video trực tiếp qua serverless functions không được hỗ trợ trên Vercel để tránh lỗi HTTP 413 Payload Too Large / 500 EROFS. Vui lòng sử dụng Direct Upload tới Vercel Blob qua /api/theory-videos/blob-upload.",
-        code: "USE_DIRECT_UPLOAD"
-      });
-    }
+  // Helper to reliably detect Vercel Serverless runtime across all deployment configurations
+  const isServerlessRuntime = (): boolean =>
+    process.env.VERCEL === "1" ||
+    process.env.VERCEL === "true" ||
+    Boolean(process.env.VERCEL_ENV) ||
+    Boolean(process.env.VERCEL_URL) ||
+    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 
-    (videoUploadMiddleware.single("video") as any)(req, res, (err: any) => {
-      if (err) {
-        console.error("[UPLOAD] Video upload error:", err);
-        return res.status(400).json({ error: "Lỗi tải video", message: err.message || "Tệp không hợp lệ" });
-      }
-      if (!req.file) {
-        return res.status(400).json({ error: "Không tìm thấy tệp video nào được gửi." });
-      }
-
-      const uid = (req as any).uploadUid || (req as any).user?.userId || "usr-teacher-001";
-      const videoId = (req as any).uploadVideoId || `video_${Date.now()}`;
-      const relativeUrl = `/uploads/teacher/${uid}/${videoId}/${req.file.filename}`;
-      const storagePath = `teacher/${uid}/${videoId}/${req.file.filename}`;
-
-      // Backward-compatible fallback in videos directory
-      try {
-        const fallbackDir = storagePaths.VIDEOS_UPLOAD_DIR;
-        if (!fs.existsSync(fallbackDir)) {
-          fs.mkdirSync(fallbackDir, { recursive: true });
-        }
-        const fallbackPath = path.join(fallbackDir, req.file.filename);
-        if (!fs.existsSync(fallbackPath)) {
-          fs.copyFileSync(req.file.path, fallbackPath);
-        }
-      } catch (copyErr) {
-        console.warn("[UPLOAD] Fallback copy to videos dir skipped:", copyErr);
-      }
-
-      console.log(`[UPLOAD] Video file saved to TEACHER MEDIA Storage: ${storagePath} (${req.file.size} bytes)`);
-
-      res.json({
-        success: true,
-        videoUrl: relativeUrl,
-        storagePath: storagePath,
-        uid: uid,
-        videoId: videoId,
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype
-      });
+  // Video File Upload Endpoint - permanently disabled in favor of Direct Vercel Blob Upload
+  app.post("/api/theory-videos/upload", (_req, res) => {
+    return res.status(400).json({
+      success: false,
+      code: "DIRECT_UPLOAD_REQUIRED",
+      error: "Tải tệp video trực tiếp qua server filesystem đã bị vô hiệu hóa.",
+      message: "Vui lòng sử dụng Direct Upload tới Vercel Blob qua /api/theory-videos/blob-upload."
     });
   });
 
@@ -530,8 +495,10 @@ app.get("/api/health", (_req, res) => {
     try {
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         return res.status(503).json({
-          error: "Vercel Blob Storage token is not configured (missing BLOB_READ_WRITE_TOKEN). Vui lòng thêm biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Dashboard để kích hoạt tính năng Direct Object Storage Upload cho video bài học.",
-          code: "BLOB_NOT_CONFIGURED"
+          success: false,
+          code: "BLOB_NOT_CONFIGURED",
+          error: "Kho video chưa được cấu hình",
+          message: "Chưa kết nối kho lưu trữ video. Vui lòng thêm biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Project Settings để bật tính năng tải video trực tiếp lên Cloud."
         });
       }
 
@@ -543,8 +510,10 @@ app.get("/api/health", (_req, res) => {
         teacherUser = getAuthenticatedUser(req);
         if (!teacherUser || teacherUser.role !== "teacher") {
           return res.status(401).json({
-            error: "Unauthorized: Chỉ giáo viên mới có quyền tạo token ủy quyền tải lên video.",
-            code: "TEACHER_AUTH_REQUIRED"
+            success: false,
+            code: "TEACHER_AUTH_REQUIRED",
+            error: "Unauthorized",
+            message: "Chỉ giáo viên mới có quyền tạo token ủy quyền tải lên video."
           });
         }
       }
@@ -615,77 +584,15 @@ app.get("/api/health", (_req, res) => {
     }
   });
 
-  // POST Chunked Upload for Local Development / Non-Blob Fallback
-  // Slices video into 2MB parts in the browser so no single HTTP request exceeds 4.5MB
-  app.post(
-    "/api/theory-videos/chunk-upload",
-    requireTeacherAuth,
-    (chunkUploadMiddleware.single("chunk") as any),
-    async (req, res) => {
-      try {
-        if (process.env.VERCEL === "1") {
-          return res.status(400).json({
-            error: "Môi trường Vercel Serverless không hỗ trợ lưu trữ tệp cục bộ. Vui lòng cấu hình Vercel Blob để sử dụng Direct Object Storage Upload.",
-            code: "SERVERLESS_STORAGE_REQUIRED"
-          });
-        }
-
-        if (!req.file) {
-          return res.status(400).json({ error: "Không tìm thấy dữ liệu phân mảnh video (chunk)" });
-        }
-        const uploadId = (req.body.uploadId || `up_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, "_");
-        const chunkIndex = Number(req.body.chunkIndex || 0);
-        const totalChunks = Number(req.body.totalChunks || 1);
-        const originalName = req.body.fileName || "video.mp4";
-        const ext = path.extname(originalName).toLowerCase() || ".mp4";
-        const sanitizedBase = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
-
-        const tempDir = path.join(storagePaths.UPLOADS_DIR, "temp");
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
-        const tempFilePath = path.join(tempDir, `${uploadId}.tmp`);
-
-        // Append chunk buffer to temp file
-        fs.appendFileSync(tempFilePath, req.file.buffer);
-
-        // Check if this was the last chunk
-        if (chunkIndex >= totalChunks - 1) {
-          const videosDir = storagePaths.VIDEOS_UPLOAD_DIR;
-          if (!fs.existsSync(videosDir)) {
-            fs.mkdirSync(videosDir, { recursive: true });
-          }
-          const finalFileName = `video_${Date.now()}_${sanitizedBase}${ext}`;
-          const finalFilePath = path.join(videosDir, finalFileName);
-
-          fs.renameSync(tempFilePath, finalFilePath);
-          const finalStats = fs.statSync(finalFilePath);
-
-          console.log(`[STORAGE] Assembled chunked video: ${finalFileName} (${(finalStats.size / (1024 * 1024)).toFixed(1)} MB)`);
-
-          return res.json({
-            success: true,
-            completed: true,
-            videoUrl: `/uploads/videos/${finalFileName}`,
-            fileName: originalName,
-            fileSize: finalStats.size,
-            mimeType: req.body.mimeType || "video/mp4"
-          });
-        }
-
-        // Chunk received successfully, awaiting remaining chunks
-        res.json({
-          success: true,
-          completed: false,
-          chunkIndex,
-          totalChunks
-        });
-      } catch (err: any) {
-        console.error("[API] Chunk upload error:", err);
-        res.status(500).json({ error: "Lỗi tải lên phân mảnh", message: err.message });
-      }
-    }
-  );
+  // POST Chunked Upload permanently disabled to protect Serverless & Cloud runtime
+  app.post("/api/theory-videos/chunk-upload", (_req, res) => {
+    return res.status(400).json({
+      success: false,
+      code: "CHUNK_UPLOAD_DISABLED",
+      error: "Tính năng chunk upload cục bộ đã bị vô hiệu hóa.",
+      message: "Hệ thống sử dụng Direct Upload tới Vercel Blob để đảm bảo tốc độ và không giới hạn dung lượng tệp. Vui lòng sử dụng Direct Upload."
+    });
+  });
 
   // POST create and assign video directly from client metadata (Teacher action)
   // Request size is purely JSON (< 2KB), completely bypassing 413 Payload Too Large
@@ -706,7 +613,8 @@ app.get("/api/health", (_req, res) => {
         duration,
         durationSeconds,
         storagePath,
-        fileId
+        fileId,
+        idempotencyKey
       } = req.body;
 
       const effectiveShape = (shape || shapeType || "cylinder").toLowerCase() as "cylinder" | "cone" | "sphere";
@@ -749,7 +657,9 @@ app.get("/api/health", (_req, res) => {
         order: PersistentTheoryVideoStorage.getAllVideos().length + 1,
         status: "PUBLISHED",
         visibility: "public",
+        storageType: "vercel_blob",
         uploadStatus: "ready",
+        idempotencyKey: typeof idempotencyKey === "string" ? idempotencyKey : undefined,
         authorName: user?.username === "hieu1say" ? "ThS. Trần Ngọc Hiếu" : (user?.username || "Giáo viên Toán"),
         createdBy: user?.username === "hieu1say" ? "ThS. Trần Ngọc Hiếu" : (user?.username || "Giáo viên Toán"),
         authorId: user?.userId || "usr-teacher-001",
@@ -772,13 +682,35 @@ app.get("/api/health", (_req, res) => {
 
   // GET Video Storage Architecture Configuration
   app.get("/api/theory-videos/storage-config", (_req, res) => {
-    const isBlobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-    const isServerless = process.env.VERCEL === "1";
+    const rawToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const isBlobConfigured = Boolean(rawToken && rawToken.trim() !== "");
+    const isServerless = isServerlessRuntime();
+
+    let status: "UNCONFIGURED" | "READY" | "INVALID_CREDENTIALS" = "UNCONFIGURED";
+    let message = "Chưa kết nối kho lưu trữ video. Vui lòng thêm biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Project Settings.";
+    let adminInstructions: string | undefined = "Vào Vercel Dashboard -> Project Settings -> Environment Variables -> Thêm BLOB_READ_WRITE_TOKEN hoặc liên kết Vercel Blob Store.";
+
+    if (isBlobConfigured) {
+      if (rawToken && (rawToken.startsWith("vercel_blob_rw_") || rawToken.length > 20)) {
+        status = "READY";
+        message = "Kho lưu trữ đám mây Vercel Blob đã sẵn sàng.";
+        adminInstructions = undefined;
+      } else {
+        status = "INVALID_CREDENTIALS";
+        message = "Biến môi trường BLOB_READ_WRITE_TOKEN có định dạng không hợp lệ.";
+        adminInstructions = "Kiểm tra lại giá trị token trong Vercel Storage settings (thường bắt đầu bằng vercel_blob_rw_).";
+      }
+    }
+
     res.json({
-      provider: isBlobConfigured ? "vercel-blob" : isServerless ? "unconfigured-blob" : "local-disk",
-      blobConfigured: isBlobConfigured,
+      success: true,
+      status,
+      provider: isBlobConfigured && status === "READY" ? "vercel_blob" : "unconfigured",
+      blobConfigured: isBlobConfigured && status === "READY",
       isServerless,
       maxSizeBytes: 500 * 1024 * 1024,
+      message,
+      adminInstructions,
       allowedMimeTypes: [
         "video/mp4",
         "video/webm",
@@ -792,8 +724,15 @@ app.get("/api/health", (_req, res) => {
     });
   });
 
-  // Thumbnail Image Upload Endpoint (Teacher action ONLY)
+  // Thumbnail Image Upload Endpoint (Teacher action ONLY - Local development fallback)
   app.post("/api/theory-videos/upload-thumbnail", requireTeacherAuth, (req, res) => {
+    if (isServerlessRuntime()) {
+      return res.status(400).json({
+        error: "Môi trường Vercel Serverless không hỗ trợ lưu trữ ảnh cục bộ trên ổ đĩa máy chủ. Vui lòng tải ảnh thumbnail trực tiếp lên Vercel Blob.",
+        code: "SERVERLESS_STORAGE_REQUIRED"
+      });
+    }
+
     (thumbnailUploadMiddleware.single("thumbnail") as any)(req, res, (err: any) => {
       if (err) {
         return res.status(400).json({ error: "Lỗi tải ảnh thumbnail", message: err.message });
@@ -1003,91 +942,11 @@ app.get("/api/health", (_req, res) => {
     }
   });
 
-  // POST Upload and Assign Video directly to a Shape (Teacher action ONLY)
-  app.post("/api/theory-videos/upload-and-assign", requireTeacherAuth, (req, res) => {
-    (videoUploadMiddleware.single("video") as any)(req, res, (err: any) => {
-      if (err) {
-        return res.status(400).json({ error: "Lỗi tải video", message: err.message });
-      }
-      if (!req.file) {
-        return res.status(400).json({ error: "Không tìm thấy tệp video nào được gửi." });
-      }
-
-      try {
-        const shape = String(req.body.shape || "cylinder").toLowerCase() as "cylinder" | "cone" | "sphere";
-        if (!["cylinder", "cone", "sphere"].includes(shape)) {
-          return res.status(400).json({ error: "Hình học không hợp lệ." });
-        }
-
-        const topicMap = { cylinder: "CYLINDER", cone: "CONE", sphere: "SPHERE" } as const;
-        const topic = topicMap[shape];
-        const shapeNameVn = shape === "cylinder" ? "Hình trụ" : shape === "cone" ? "Hình nón" : "Hình cầu";
-
-        const uid = (req as any).uploadUid || (req as any).user?.userId || "usr-teacher-001";
-        const videoId = (req as any).uploadVideoId || `video_${Date.now()}`;
-        const relativeUrl = `/uploads/teacher/${uid}/${videoId}/${req.file.filename}`;
-        const storagePath = `teacher/${uid}/${videoId}/${req.file.filename}`;
-
-        // Also ensure a copy in videos directory
-        try {
-          const uploadsVideosDir = storagePaths.VIDEOS_UPLOAD_DIR;
-          if (!fs.existsSync(uploadsVideosDir)) fs.mkdirSync(uploadsVideosDir, { recursive: true });
-          const copyDest = path.join(uploadsVideosDir, req.file.filename);
-          if (!fs.existsSync(copyDest)) {
-            fs.copyFileSync(req.file.path, copyDest);
-          }
-        } catch {}
-
-        const title = req.body.title || `Video bài học ${shapeNameVn}`;
-        const description = req.body.description || `Video bài học ${shapeNameVn} do giáo viên tải lên và gán chính thức.`;
-
-        const newVideo = PersistentTheoryVideoStorage.createVideo({
-          id: videoId,
-          shape,
-          lessonId: `lesson-${shape}`,
-          sectionId: "THEORY",
-          type: "TEACHER",
-          ownerId: uid,
-          storagePath,
-          downloadURL: relativeUrl,
-          videoUrl: relativeUrl,
-          thumbnailURL: `/assets/videos/${shape === "cylinder" ? "tru" : shape === "cone" ? "non" : "cau"}_poster.jpg`,
-          thumbnailUrl: `/assets/videos/${shape === "cylinder" ? "tru" : shape === "cone" ? "non" : "cau"}_poster.jpg`,
-          fileName: req.file.originalname,
-          sourceFile: req.file.filename,
-          originalFileName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
-          fileSize: req.file.size,
-          duration: req.body.duration || "00:15",
-          durationSeconds: Number(req.body.durationSeconds) || 15,
-          status: "PUBLISHED",
-          topic,
-          section: "THEORY",
-          title,
-          lessonTitle: title,
-          description,
-          author: (req as any).user?.displayName || "Thầy. Trần Ngọc Hiếu (Trường Phổ Thông Thực Hành Sư Phạm)",
-          authorName: (req as any).user?.displayName || "Thầy. Trần Ngọc Hiếu (Trường Phổ Thông Thực Hành Sư Phạm)",
-          createdBy: (req as any).user?.displayName || "Thầy. Trần Ngọc Hiếu (Trường Phổ Thông Thực Hành Sư Phạm)",
-          visibility: "public",
-          uploadStatus: "ready",
-          order: 1
-        });
-
-        // Automatically assign this video to the shape
-        const assignments = PersistentTheoryVideoStorage.assignVideoToShape(shape, newVideo.id);
-
-        res.json({
-          success: true,
-          video: newVideo,
-          assignments,
-          message: `Đã tải lên và gán thành công video cho ${shapeNameVn}!`
-        });
-      } catch (saveErr: any) {
-        console.error("[API] Error saving uploaded and assigned video:", saveErr);
-        res.status(500).json({ error: "Lỗi lưu dữ liệu video", message: saveErr.message });
-      }
+  // POST Upload and Assign Video directly to a Shape (Safely disabled in favor of Direct Vercel Blob Upload)
+  app.post("/api/theory-videos/upload-and-assign", requireTeacherAuth, (_req, res) => {
+    return res.status(400).json({
+      error: "Tải tệp video trực tiếp qua serverless function đã được chuyển đổi sang Direct Vercel Blob Upload để hỗ trợ video dung lượng lớn (tới 500MB) và tránh lỗi HTTP 413 / EROFS. Vui lòng tải video trực tiếp lên Vercel Blob và gọi /api/theory-videos/create-and-assign.",
+      code: "USE_DIRECT_UPLOAD"
     });
   });
 
@@ -1348,12 +1207,13 @@ downloadURL: ${video.videoUrl}`);
       const user = (req as any).user;
       const payload = {
         ...req.body,
+        idempotencyKey: typeof req.body.idempotencyKey === "string" ? req.body.idempotencyKey : undefined,
         authorId: user?.userId || "usr-teacher-001",
         authorName: req.body.authorName || (user?.username === "hieu1say" ? "ThS. Trần Ngọc Hiếu" : (user?.username || "Giáo viên Toán")),
         createdBy: req.body.createdBy || user?.username || "teacher"
       };
       const created = PersistentTheoryVideoStorage.createVideo(payload);
-      res.json({ success: true, video: created });
+      res.status(201).json({ success: true, video: created });
     } catch (err: any) {
       console.error("[API] Error creating theory video:", err);
       res.status(500).json({ error: "Lỗi lưu video bài giảng", message: err.message });

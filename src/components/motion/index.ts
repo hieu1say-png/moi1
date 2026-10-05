@@ -3,7 +3,6 @@ export { StaggerReveal } from './StaggerReveal';
 export { TiltCard } from './TiltCard';
 export { CustomDualCursor } from './CustomDualCursor';
 export { PerspectiveTiltGrid } from './PerspectiveTiltGrid';
-export { FloatingMathStickers } from './FloatingMathStickers';
 export { DynamicTypewriter } from './DynamicTypewriter';
 export { SubtleAmbience } from './SubtleAmbience';
 export { FocusModeProvider, useFocusMode } from './FocusModeProvider';

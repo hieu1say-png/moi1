@@ -70,6 +70,7 @@ export interface TheoryVideo {
   duration?: string; // e.g. "00:15"
   thumbnailURL?: string;
   status: VideoStatus;
+  storageType?: 'vercel_blob' | 'canonical' | 'local';
   createdAt: number;
   updatedAt: number;
   publishedAt?: number | null;
@@ -104,6 +105,33 @@ export interface TheoryVideo {
   createdBy?: string;
   viewCount?: number;
   lessonTitle?: string;
+  idempotencyKey?: string;
+}
+
+export type VideoStorageStatus = 'UNCONFIGURED' | 'READY' | 'INVALID_CREDENTIALS' | 'UNREACHABLE';
+
+export interface VideoStorageConfigResponse {
+  success: boolean;
+  status: VideoStorageStatus;
+  provider: 'vercel_blob' | 'unconfigured';
+  blobConfigured: boolean;
+  isServerless: boolean;
+  maxSizeBytes: number;
+  allowedMimeTypes: string[];
+  message: string;
+  adminInstructions?: string;
+}
+
+export interface VideoBankManifest {
+  schemaVersion: string;
+  revision: number;
+  updatedAt: string;
+  videos: TheoryVideo[];
+  assignments: {
+    cylinder: string | null;
+    cone: string | null;
+    sphere: string | null;
+  };
 }
 
 export interface SystemVideoHealthItem {

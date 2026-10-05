@@ -21,7 +21,6 @@ import {
   Layers,
   Sparkles,
   ChevronRight,
-  Bot,
   GraduationCap,
   School,
   Gamepad2
@@ -195,34 +194,6 @@ export const Sidebar: React.FC = () => {
             </button>
           );
         })}
-
-        {/* AI Assistant Quick Pill */}
-        <div className="pt-2">
-          <button
-            id="nav-item-ai"
-            onClick={() => navigateTo('/ai')}
-            className={`
-              w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer border
-              ${
-                currentRoute === '/ai'
-                  ? 'bg-[#047857] border-[#047857] text-white font-bold shadow-sm'
-                  : 'bg-[#DCFCE7] border-[#BBF7D0] text-[#15803D] hover:bg-[#BBF7D0]/60'
-              }
-            `}
-          >
-            <div className="flex items-center gap-2">
-              <Bot className={`w-3.5 h-3.5 ${currentRoute === '/ai' ? 'text-white' : 'text-[#15803D]'}`} />
-              <span>Gia sư AI Toán 9</span>
-            </div>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-              currentRoute === '/ai'
-                ? 'bg-white/20 text-white border-white/30'
-                : 'bg-white text-[#15803D] border-[#BBF7D0]'
-            }`}>
-              24/7
-            </span>
-          </button>
-        </div>
 
         {/* Thông tin Lớp học & Giáo viên phụ trách */}
         <div className="mt-4 pt-3.5 px-2 border-t border-slate-200/80 space-y-1">

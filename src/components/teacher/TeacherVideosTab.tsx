@@ -49,7 +49,11 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowUpDown,
-  Bookmark
+  Bookmark,
+  Link2,
+  Check,
+  ArrowRight,
+  Video
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import { LessonVideo } from '../video/LessonVideo';
@@ -67,6 +71,16 @@ export const TeacherVideosTab: React.FC = () => {
   const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
   const [sortOption, setSortOption] = useState<SortOption>('ORDER');
+
+  // Shape video assignments state (persistent shape bindings)
+  const [assignments, setAssignments] = useState<Record<string, string | null>>({
+    cylinder: null,
+    cone: null,
+    sphere: null
+  });
+  const [assigningShapeModal, setAssigningShapeModal] = useState<'cylinder' | 'cone' | 'sphere' | null>(null);
+  const [assignShapeOnSave, setAssignShapeOnSave] = useState<'NONE' | 'cylinder' | 'cone' | 'sphere'>('NONE');
+  const [quickAssignVideoId, setQuickAssignVideoId] = useState<string | null>(null);
 
   // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState<boolean>(false);
@@ -106,22 +120,38 @@ export const TeacherVideosTab: React.FC = () => {
     authorId: teacherUser?.id || 'usr-teacher-001'
   });
 
-  const loadVideos = () => {
+  const loadVideosAndAssignments = () => {
     TheoryVideoService.fetchVideosFromServer().then((list) => {
       setVideos(list);
+    });
+    TheoryVideoService.getAssignments().then((asg) => {
+      if (asg) setAssignments(asg);
     });
   };
 
   useEffect(() => {
-    loadVideos();
+    loadVideosAndAssignments();
 
     // Subscribe to real-time service updates
     const unsubscribe = TheoryVideoService.subscribe((updatedVideos) => {
       setVideos(updatedVideos);
     });
 
+    // Listen to real-time video assignment events
+    const handleVideoAssigned = (e: any) => {
+      if (e.detail?.assignments) {
+        setAssignments(e.detail.assignments);
+      } else {
+        TheoryVideoService.getAssignments().then((asg) => {
+          if (asg) setAssignments(asg);
+        });
+      }
+    };
+    window.addEventListener('geometry_lab_video_assigned', handleVideoAssigned);
+
     return () => {
       unsubscribe();
+      window.removeEventListener('geometry_lab_video_assigned', handleVideoAssigned);
     };
   }, []);
 
@@ -165,10 +195,29 @@ export const TeacherVideosTab: React.FC = () => {
     return { total, published, drafts, archived, totalViews, cylCount, coneCount, sphCount };
   }, [videos]);
 
+  const handleAssignVideoToShape = async (shape: 'cylinder' | 'cone' | 'sphere', videoId: string | null) => {
+    const res = await TheoryVideoService.assignVideo(shape, videoId);
+    if (res.success && res.assignments) {
+      setAssignments(res.assignments);
+      const shapeVn = shape === 'cylinder' ? 'Hình Trụ' : shape === 'cone' ? 'Hình Nón' : 'Hình Cầu';
+      if (videoId) {
+        const v = videos.find((item) => item.id === videoId);
+        showSuccess('Gán bài học thành công', `Đã gán video "${v?.title || videoId}" cho ${shapeVn}. Học sinh sẽ xem video này khi vào bài học.`);
+      } else {
+        showSuccess('Hủy gán thành công', `Đã hủy gán video riêng cho ${shapeVn}. Hệ thống sẽ dùng video bài giảng chuẩn.`);
+      }
+      setAssigningShapeModal(null);
+      setQuickAssignVideoId(null);
+    } else {
+      showError('Lỗi gán video', res.error || 'Không thể cập nhật liên kết bài giảng.');
+    }
+  };
+
   const handleOpenCreateModal = () => {
     setEditingVideoId(null);
     setSelectedVideoFile(null);
     setIsExternalUrlMode(false);
+    setAssignShapeOnSave(activeTopicTab === 'ALL' ? 'NONE' : (activeTopicTab.toLowerCase() as any));
     setFormData({
       title: '',
       topic: activeTopicTab === 'ALL' ? 'CYLINDER' : activeTopicTab,
@@ -207,6 +256,8 @@ export const TeacherVideosTab: React.FC = () => {
     setSelectedVideoFile(null);
     const isExt = Boolean(video.videoUrl && (video.videoUrl.startsWith('http://') || video.videoUrl.startsWith('https://')) && !video.videoUrl.includes('vercel-storage.com'));
     setIsExternalUrlMode(isExt);
+    const currentAssignedShape = (Object.entries(assignments).find(([_, id]) => id === video.id)?.[0] || 'NONE') as any;
+    setAssignShapeOnSave(currentAssignedShape);
     setFormData({
       title: video.title,
       topic: video.topic,
@@ -363,7 +414,12 @@ export const TeacherVideosTab: React.FC = () => {
           authorName: teacherUser?.fullName || formData.authorName
         });
         if (res.success) {
-          showSuccess('Thành công', 'Đã cập nhật và lưu bài giảng video vào máy chủ.');
+          if (assignShapeOnSave !== 'NONE') {
+            await TheoryVideoService.assignVideo(assignShapeOnSave, editingVideoId);
+            const freshAsg = await TheoryVideoService.getAssignments();
+            setAssignments(freshAsg);
+          }
+          showSuccess('Thành công', 'Đã cập nhật và lưu bài giảng video vào Ngân hàng video.');
           setUploadStep('SAVED');
           setIsFormDirty(false);
           setIsFormModalOpen(false);
@@ -382,8 +438,13 @@ export const TeacherVideosTab: React.FC = () => {
           authorId: teacherUser?.id || 'usr-teacher-001',
           authorName: teacherUser?.fullName || formData.authorName
         });
-        if (res.success) {
-          showSuccess('Thành công', 'Đã lưu video bài giảng mới bền vững vào máy chủ.');
+        if (res.success && res.video) {
+          if (assignShapeOnSave !== 'NONE') {
+            await TheoryVideoService.assignVideo(assignShapeOnSave, res.video.id);
+            const freshAsg = await TheoryVideoService.getAssignments();
+            setAssignments(freshAsg);
+          }
+          showSuccess('Thành công', 'Đã lưu video bài giảng mới bền vững vào Ngân hàng video.');
           setUploadStep('SAVED');
           setIsFormDirty(false);
           setIsFormModalOpen(false);
@@ -488,11 +549,182 @@ export const TeacherVideosTab: React.FC = () => {
 
   return (
     <div id="teacher-videos-tab" className="space-y-6">
-      {/* 1. Statistics Cards */}
+      {/* 0. Main Title Banner */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider">
+              Kho Học Liệu Số
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs text-slate-500 font-medium">Toán 9 GDPT 2018</span>
+          </div>
+          <h2 className="text-lg sm:text-xl font-black font-serif text-slate-900 flex items-center gap-2">
+            <Video className="w-5 h-5 text-blue-600" />
+            <span>Ngân Hàng Video Bài Giảng (Video Bank)</span>
+          </h2>
+          <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+            Tải và quản lý bài giảng video cho chuyên đề Hình học không gian 9. Thầy/Cô có thể lưu trữ video vào ngân hàng và gán trực tiếp làm bài giảng chính cho <strong>Hình Trụ, Hình Nón, Hình Cầu</strong>.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            id="btn-teacher-banner-add-video"
+            variant="primary"
+            size="sm"
+            shape="pill"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={handleOpenCreateModal}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs"
+          >
+            Tải và lưu vào ngân hàng
+          </Button>
+        </div>
+      </div>
+
+      {/* 1. Active Lesson Video Assignments Board (Gán Video Vào Bài Học: Hình Trụ • Hình Nón • Hình Cầu) */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
+                <span>Gán Video Bài Giảng Cho Nội Dung Bài Học (Hình Trụ • Hình Nón • Hình Cầu)</span>
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Học sinh sẽ xem video được gán tương ứng khi vào màn hình học lý thuyết hoặc 3D Lab.
+            </p>
+          </div>
+          <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 self-start sm:self-auto flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Tự động đồng bộ và lưu trữ vĩnh viễn</span>
+          </span>
+        </div>
+
+        {/* 3 Shape Assignment Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(
+            [
+              { shape: 'cylinder', topic: 'CYLINDER', label: 'Hình Trụ', color: 'amber', subtitle: 'Bài 1: Diện tích & Thể tích' },
+              { shape: 'cone', topic: 'CONE', label: 'Hình Nón', color: 'rose', subtitle: 'Bài 2: Diện tích & Thể tích' },
+              { shape: 'sphere', topic: 'SPHERE', label: 'Hình Cầu', color: 'emerald', subtitle: 'Bài 3: Diện tích & Thể tích' }
+            ] as const
+          ).map((item) => {
+            const assignedId = assignments[item.shape];
+            const assignedVid = videos.find((v) => v.id === assignedId);
+
+            return (
+              <div
+                key={item.shape}
+                className={`rounded-2xl border p-4 transition-all flex flex-col justify-between space-y-3 ${
+                  assignedVid
+                    ? item.color === 'amber'
+                      ? 'bg-amber-50/40 border-amber-200'
+                      : item.color === 'rose'
+                      ? 'bg-rose-50/40 border-rose-200'
+                      : 'bg-emerald-50/40 border-emerald-200'
+                    : 'bg-slate-50/70 border-slate-200'
+                }`}
+              >
+                <div>
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white uppercase tracking-wider ${
+                        item.color === 'amber'
+                          ? 'bg-amber-600'
+                          : item.color === 'rose'
+                          ? 'bg-rose-600'
+                          : 'bg-emerald-600'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {item.subtitle}
+                    </span>
+                  </div>
+
+                  {/* Assigned Video Info */}
+                  {assignedVid ? (
+                    <div className="space-y-2 mt-2">
+                      <div className="flex items-start gap-2.5">
+                        <div className="relative w-16 h-11 bg-slate-900 rounded-lg overflow-hidden shrink-0 border border-slate-200">
+                          {assignedVid.thumbnailUrl ? (
+                            <img
+                              src={assignedVid.thumbnailUrl}
+                              alt={assignedVid.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <Film className="w-4 h-4" />
+                            </div>
+                          )}
+                          <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded bg-black/80 text-white text-[8px] font-mono">
+                            {assignedVid.duration || '05:00'}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-serif font-bold text-xs text-slate-900 line-clamp-1">
+                            {assignedVid.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                            {assignedVid.authorName || 'Giáo viên'}
+                          </p>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded mt-1">
+                            <Check className="w-3 h-3" /> Đang phát cho học sinh
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-3 px-2 text-center border border-dashed border-slate-300 rounded-xl bg-white/60 space-y-1">
+                      <Film className="w-5 h-5 text-slate-400 mx-auto" />
+                      <p className="text-[11px] font-medium text-slate-600">
+                        Chưa gán video từ ngân hàng
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        Đang sử dụng bài giảng chuẩn SGK Toán 9
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Actions */}
+                <div className="pt-2 border-t border-slate-200/80 flex items-center gap-1.5 justify-end">
+                  {assignedVid && (
+                    <button
+                      type="button"
+                      onClick={() => handleAssignVideoToShape(item.shape, null)}
+                      className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                      title="Hủy gán để quay lại video SGK mặc định"
+                    >
+                      Bỏ gán
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setAssigningShapeModal(item.shape)}
+                    className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                  >
+                    <Link2 className="w-3 h-3 text-blue-600" />
+                    <span>{assignedVid ? 'Đổi video khác' : 'Chọn từ ngân hàng'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Statistics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tổng Video</span>
+            <span className="text-xs font-bold text-slate-500">Tổng Video Trong Kho</span>
             <Film className="w-4 h-4 text-blue-600" />
           </div>
           <p className="text-xl sm:text-2xl font-bold font-serif text-slate-900 mt-1">
@@ -687,11 +919,14 @@ export const TeacherVideosTab: React.FC = () => {
         {filteredVideos.map((video) => {
           const isHealthKnown = typeof healthMap[video.id] === 'boolean';
           const isHealthy = healthMap[video.id] !== false;
+          const assignedShapeKey = (Object.entries(assignments).find(([_, id]) => id === video.id)?.[0] || null) as 'cylinder' | 'cone' | 'sphere' | null;
 
           return (
             <div
               key={video.id}
-              className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col justify-between hover:border-slate-300 transition-all"
+              className={`bg-white rounded-2xl border shadow-2xs overflow-hidden flex flex-col justify-between transition-all ${
+                assignedShapeKey ? 'border-amber-300 ring-2 ring-amber-400/20' : 'border-slate-200 hover:border-slate-300'
+              }`}
             >
               {/* Thumbnail Header */}
               <div className="relative aspect-video bg-slate-900 group">
@@ -758,6 +993,16 @@ export const TeacherVideosTab: React.FC = () => {
                   <Play className="w-5 h-5 translate-x-0.5 fill-current" />
                 </button>
 
+                {/* Assigned Status Overlay Badge */}
+                {assignedShapeKey && (
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1 shadow-sm">
+                      <Sparkles className="w-3 h-3 fill-current" />
+                      <span>Đang gán: {assignedShapeKey === 'cylinder' ? 'Hình Trụ' : assignedShapeKey === 'cone' ? 'Hình Nón' : 'Hình Cầu'}</span>
+                    </span>
+                  </div>
+                )}
+
                 {/* Duration & Health Status */}
                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
                   {isHealthKnown && (
@@ -809,7 +1054,7 @@ export const TeacherVideosTab: React.FC = () => {
               </div>
 
               {/* Action Bar */}
-              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1.5">
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1.5 relative">
                 {/* Publish / Draft Toggle */}
                 <div className="flex items-center gap-1">
                   {video.status === 'DRAFT' && (
@@ -844,6 +1089,70 @@ export const TeacherVideosTab: React.FC = () => {
                     >
                       <Archive className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                </div>
+
+                {/* Middle: Quick Assign to Shape Menu */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setQuickAssignVideoId(quickAssignVideoId === video.id ? null : video.id)}
+                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                      assignedShapeKey
+                        ? 'bg-amber-100 text-amber-900 border-amber-300'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                    }`}
+                    title="Gán video này cho Hình Trụ, Hình Nón hoặc Hình Cầu"
+                  >
+                    <Link2 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{assignedShapeKey ? 'Đã gán' : 'Gán'}</span>
+                  </button>
+
+                  {quickAssignVideoId === video.id && (
+                    <div className="absolute bottom-full right-0 mb-1 z-30 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 space-y-1 text-xs">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase px-2 py-1 block">
+                        Gán cho bài học:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignVideoToShape('cylinder', video.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-amber-50 transition-colors ${
+                          assignments.cylinder === video.id ? 'font-bold text-amber-800 bg-amber-50' : 'text-slate-700'
+                        }`}
+                      >
+                        <span>Hình Trụ</span>
+                        {assignments.cylinder === video.id && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignVideoToShape('cone', video.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-rose-50 transition-colors ${
+                          assignments.cone === video.id ? 'font-bold text-rose-800 bg-rose-50' : 'text-slate-700'
+                        }`}
+                      >
+                        <span>Hình Nón</span>
+                        {assignments.cone === video.id && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignVideoToShape('sphere', video.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between hover:bg-emerald-50 transition-colors ${
+                          assignments.sphere === video.id ? 'font-bold text-emerald-800 bg-emerald-50' : 'text-slate-700'
+                        }`}
+                      >
+                        <span>Hình Cầu</span>
+                        {assignments.sphere === video.id && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                      </button>
+                      {assignedShapeKey && (
+                        <button
+                          type="button"
+                          onClick={() => handleAssignVideoToShape(assignedShapeKey, null)}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-bold border-t border-slate-100 transition-colors"
+                        >
+                          Hủy gán bài học
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1210,6 +1519,30 @@ export const TeacherVideosTab: React.FC = () => {
                 </div>
               </div>
 
+              {/* Instant Shape Assignment Select */}
+              <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Gán ngay cho nội dung bài học học sinh</span>
+                </label>
+                <select
+                  value={assignShapeOnSave}
+                  onChange={(e) => {
+                    setAssignShapeOnSave(e.target.value as any);
+                    setIsFormDirty(true);
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-slate-800"
+                >
+                  <option value="NONE">Không gán (Chỉ lưu vào Ngân hàng video)</option>
+                  <option value="cylinder">Gán cho bài học Hình Trụ (Cylinder)</option>
+                  <option value="cone">Gán cho bài học Hình Nón (Cone)</option>
+                  <option value="sphere">Gán cho bài học Hình Cầu (Sphere)</option>
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Nếu chọn gán, video này sẽ ngay lập tức phát cho học sinh lớp 9 khi vào bài học hình học tương ứng.
+                </p>
+              </div>
+
               {/* Row 6: KaTeX Description */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -1387,10 +1720,10 @@ export const TeacherVideosTab: React.FC = () => {
                   {uploadStep === 'SAVING' ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Đang lưu vào máy chủ...</span>
+                      <span>Đang lưu vào ngân hàng...</span>
                     </>
                   ) : (
-                    <span>{editingVideoId ? 'Lưu Thay Đổi' : 'Tạo Video Bài Học'}</span>
+                    <span>{editingVideoId ? 'Cập nhật và lưu vào ngân hàng' : 'Tải và lưu vào ngân hàng'}</span>
                   )}
                 </Button>
               </div>
@@ -1472,6 +1805,147 @@ export const TeacherVideosTab: React.FC = () => {
                 className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
               >
                 Xóa Video
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. MODAL CHỌN VIDEO TỪ NGÂN HÀNG ĐỂ GÁN CHO BÀI HỌC */}
+      {assigningShapeModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-5 h-5 text-blue-600" />
+                <h3 className="font-serif font-bold text-base text-slate-900">
+                  Chọn Video Cho {assigningShapeModal === 'cylinder' ? 'Hình Trụ' : assigningShapeModal === 'cone' ? 'Hình Nón' : 'Hình Cầu'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssigningShapeModal(null)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Chọn một video từ Ngân hàng dưới đây để làm bài giảng chính thức cho <strong>{assigningShapeModal === 'cylinder' ? 'Hình Trụ' : assigningShapeModal === 'cone' ? 'Hình Nón' : 'Hình Cầu'}</strong>:
+            </p>
+
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1">
+              {videos.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 space-y-2">
+                  <Film className="w-8 h-8 mx-auto text-slate-300" />
+                  <p className="text-xs font-medium text-slate-500">Chưa có video trong Ngân hàng.</p>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    shape="pill"
+                    onClick={() => {
+                      const targetShape = assigningShapeModal;
+                      setAssigningShapeModal(null);
+                      handleOpenCreateModal();
+                      setAssignShapeOnSave(targetShape);
+                    }}
+                    className="text-xs font-bold"
+                  >
+                    + Tải video mới vào ngân hàng
+                  </Button>
+                </div>
+              ) : (
+                videos.map((vid) => {
+                  const isCurrent = assignments[assigningShapeModal] === vid.id;
+                  const isTopicMatch = vid.topic?.toLowerCase() === assigningShapeModal;
+
+                  return (
+                    <div
+                      key={vid.id}
+                      className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                        isCurrent
+                          ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20'
+                          : 'bg-white hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative w-16 h-11 bg-slate-900 rounded-lg overflow-hidden shrink-0">
+                          {vid.thumbnailUrl ? (
+                            <img src={vid.thumbnailUrl} alt={vid.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-600">
+                              <Film className="w-4 h-4" />
+                            </div>
+                          )}
+                          <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded bg-black/80 text-white text-[8px] font-mono">
+                            {vid.duration || '05:00'}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase">
+                              {vid.topic}
+                            </span>
+                            {isTopicMatch && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                Đúng chuyên đề
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                              {vid.status}
+                            </span>
+                          </div>
+                          <h4 className="font-serif font-bold text-xs text-slate-900 truncate mt-0.5">
+                            {vid.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {vid.authorName || 'Giáo viên'} • {vid.fileName || vid.videoUrl}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isCurrent ? (
+                          <span className="px-2.5 py-1 text-[11px] font-bold text-blue-700 bg-blue-100 rounded-lg flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Đang gán
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAssignVideoToShape(assigningShapeModal, vid.id)}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer"
+                          >
+                            Gán video này
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              {assignments[assigningShapeModal] ? (
+                <button
+                  type="button"
+                  onClick={() => handleAssignVideoToShape(assigningShapeModal, null)}
+                  className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
+                >
+                  Hủy gán (Dùng video mẫu SGK)
+                </button>
+              ) : (
+                <span />
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                shape="pill"
+                onClick={() => setAssigningShapeModal(null)}
+              >
+                Đóng
               </Button>
             </div>
           </div>

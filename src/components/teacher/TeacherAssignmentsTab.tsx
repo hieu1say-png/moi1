@@ -1009,7 +1009,7 @@ export const TeacherAssignmentsTab: React.FC<TeacherAssignmentsTabProps> = ({
                 <div className="space-y-1.5 pt-1">
                   <span className="font-bold text-slate-700 block text-[11px]">Lựa chọn đáp án:</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {previewItem.options.map((opt, idx) => {
+                    {(previewItem.options ?? []).map((opt, idx) => {
                       const letters = ['A', 'B', 'C', 'D'];
                       const isCorrect = previewItem.correctAnswerDisplay.includes(opt) || previewItem.correctAnswerDisplay.startsWith(letters[idx]);
                       return (
@@ -1053,7 +1053,7 @@ export const TeacherAssignmentsTab: React.FC<TeacherAssignmentsTabProps> = ({
                   Lời Giải Sư Phạm Chuẩn 4 Bước:
                 </span>
                 <div className="space-y-1.5 p-3 bg-blue-50/50 rounded-2xl border border-blue-100 text-slate-800">
-                  {previewItem.solution4Steps.map((step, idx) => (
+                  {(previewItem.solution4Steps && previewItem.solution4Steps.length > 0 ? previewItem.solution4Steps : ['Bước 1: Nhận dạng đại lượng đã cho', 'Bước 2: Áp dụng công thức hình học chuẩn', 'Bước 3: Thay số và giải toán', 'Bước 4: Kết luận và ghi rõ đơn vị']).map((step, idx) => (
                     <div key={idx} className="leading-relaxed">
                       <MathText text={step} />
                     </div>

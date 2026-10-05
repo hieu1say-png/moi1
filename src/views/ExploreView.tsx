@@ -27,7 +27,6 @@ import { ThreeDViewer } from '../components/explore/ThreeDViewer';
 import { ComponentSelector } from '../components/explore/ComponentSelector';
 import { InfoPanel } from '../components/explore/InfoPanel';
 import { ActionToolbar } from '../components/explore/ActionToolbar';
-import { AIExploreWidget } from '../components/explore/AIExploreWidget';
 import { VisualIllusionPuzzle } from '../components/explore/VisualIllusionPuzzle';
 import { ConeCreationMode } from '../components/explore/3d/cone-creation/ConeCreationMode';
 import { SphereCreationMode } from '../components/explore/3d/sphere-creation/SphereCreationMode';
@@ -482,12 +481,6 @@ export const ExploreView: React.FC = () => {
                 onHeightChange={setHeight}
                 onSelectComponent={setActiveComponentId}
                 calculations={calculations}
-              />
-
-              {/* AIExploreWidget: Contextual AI Assistant for active 3D model */}
-              <AIExploreWidget
-                shape={selectedShape}
-                activeComponentId={activeComponentId}
               />
             </>
           }

@@ -9,8 +9,6 @@
 import React, { useState } from 'react';
 import { Card } from '../components/common/Card';
 import { MathFormula, MathText } from '../components/common/MathFormula';
-import { AIChatPanel } from '../components/ai/AIChatPanel';
-import { AIErrorBoundary } from '../components/ai/AIErrorBoundary';
 import { ExamTrapRadarBadge } from '../components/practice/ExamTrapRadarBadge';
 import {
   Sparkles,
@@ -134,17 +132,17 @@ export const AIView: React.FC = () => {
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 2. MAIN LAYOUT: Context Controller + AIChatPanel     */}
+      {/* 2. MAIN LAYOUT: 2-Column Mathematical & Exam Prep Lab */}
       {/* ---------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Learning Context & Exercise Injector */}
-        <div className="lg:col-span-5 space-y-4">
+        {/* Left Column: Learning Context & 3D Parameters */}
+        <div className="lg:col-span-6 space-y-4">
           {/* Card: Exercise / Scenario Picker */}
           <div className="bg-[#FFFDF8] rounded-2xl border border-[#E5DCCF] p-4 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between border-b border-[#E5DCCF] pb-2.5">
               <span className="text-xs font-bold text-[#3A302B] uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-[#634796]" />
-                1. Bài Tập / Tình Huống Liên Kết
+                1. Bài Tập / Tình Huống Trọng Tâm
               </span>
               <span className="text-[10px] font-mono text-[#766A61]">
                 {exercises.length} bài tập sẵn có
@@ -156,7 +154,7 @@ export const AIView: React.FC = () => {
               onChange={(e) => handleSelectExercise(e.target.value)}
               className="w-full text-xs bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl p-2.5 font-medium text-[#3A302B] focus:outline-none focus:border-[#ED806F]"
             >
-              <option value="custom">-- Tự do đặt câu hỏi (Không theo bài tập cố định) --</option>
+              <option value="custom">-- Chọn bài tập để phân tích --</option>
               {exercises.map((ex) => (
                 <option key={ex.id} value={ex.id}>
                   [{ex.type.toUpperCase()}] {ex.title}
@@ -165,14 +163,14 @@ export const AIView: React.FC = () => {
             </select>
 
             {context.questionText && (
-              <div className="p-3 rounded-xl bg-[#FDF0ED] border border-[#F4D2CA] text-xs space-y-1.5 animate-fadeIn">
+              <div className="p-3.5 rounded-xl bg-[#FDF0ED] border border-[#F4D2CA] text-xs space-y-2 animate-fadeIn">
                 <div className="font-bold text-[#8F3E32] flex items-center justify-between">
-                  <span>Bài toán đang liên kết với AI:</span>
+                  <span>Bài toán đang chọn:</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-white font-mono text-[#8F3E32] border border-[#F4D2CA]">
                     {context.currentShape}
                   </span>
                 </div>
-                <div className="text-[#3A302B] leading-relaxed text-[11px]">
+                <div className="text-[#3A302B] leading-relaxed text-xs">
                   <MathText text={context.questionText} />
                 </div>
               </div>
@@ -181,8 +179,8 @@ export const AIView: React.FC = () => {
             {/* Student's answer field */}
             <div className="space-y-1.5 pt-1">
               <label className="text-xs font-bold text-[#3A302B] flex items-center justify-between">
-                <span>2. Kết quả bạn đã tính ra (nếu có):</span>
-                <span className="text-[10px] text-[#766A61] font-normal">Tự động gửi kèm AI</span>
+                <span>2. Kết quả em tính ra (để đối chiếu):</span>
+                <span className="text-[10px] text-[#766A61] font-normal">Tự kiểm tra</span>
               </label>
               <input
                 type="text"
@@ -192,7 +190,7 @@ export const AIView: React.FC = () => {
                 className="w-full text-xs bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl p-2.5 text-[#3A302B] focus:outline-none focus:border-[#ED806F]"
               />
               <span className="text-[10px] text-[#A0958B] block leading-tight">
-                AI sẽ đối chiếu kết quả này với công thức chuẩn để chỉ ra chỗ bạn tính nhầm.
+                Nhập đáp án để đối chiếu các bước giải chuẩn và các bẫy thường gặp.
               </span>
             </div>
           </div>
@@ -258,7 +256,10 @@ export const AIView: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
 
+        {/* Right Column: Error Traps & Exam Radar 4-Step Solution */}
+        <div className="lg:col-span-6 space-y-4">
           {/* Card: Common Mistakes & Pitfalls */}
           <div className="bg-[#FFFDF8] rounded-2xl border border-[#E5DCCF] p-4 shadow-xs space-y-2.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#8F3E32]">
@@ -283,7 +284,7 @@ export const AIView: React.FC = () => {
             <div className="flex items-center justify-between text-xs font-bold text-[#0F291E] px-1">
               <span className="flex items-center gap-1.5">
                 <Radar className="w-3.5 h-3.5 text-[#16A34A] animate-pulse" />
-                <span>AI Radar Quét Bẫy Đề Tuyển Sinh 10:</span>
+                <span>AI Radar Quét Bẫy Đề Tuyển Sinh 10 &amp; Lời Giải 4 Bước:</span>
               </span>
             </div>
             <ExamTrapRadarBadge
@@ -293,13 +294,6 @@ export const AIView: React.FC = () => {
               showFullFourSteps={true}
             />
           </div>
-        </div>
-
-        {/* Right Column: Complete Responsive AIChatPanel */}
-        <div className="lg:col-span-7">
-          <AIErrorBoundary shapeName={selectedShape}>
-            <AIChatPanel className="w-full min-h-[580px]" />
-          </AIErrorBoundary>
         </div>
       </div>
     </div>

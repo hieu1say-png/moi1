@@ -1,0 +1,165 @@
+<!-- =========================================================================
+     GEOMATRIX - MODALS & SHARED REUSABLE COMPONENTS
+     ========================================================================= -->
+
+<!-- 1. MODAL: TẢI LÊN VIDEO MỚI VÀO GOOGLE DRIVE -->
+<div id="modal-upload-video" class="modal-backdrop">
+  <div class="modal-card">
+    <button type="button" class="modal-close-btn" onclick="closeUploadModal()">&times;</button>
+    
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <div style="width:36px; height:36px; border-radius:10px; background:#DCFCE7; color:#15803D; display:flex; align-items:center; justify-content:center; font-size:18px;">
+        📹
+      </div>
+      <div>
+        <h3 style="font-size:16px; font-weight:800; color:#0F172A;">Tải Lên Video Bài Giảng Lên Google Drive</h3>
+        <p style="font-size:11px; color:#64748B;">Lưu trữ vĩnh viễn trên Drive và đồng bộ metadata vào Google Sheets</p>
+      </div>
+    </div>
+
+    <!-- Alert cảnh báo giới hạn dung lượng kỹ thuật của Google Apps Script -->
+    <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:12px; padding:10px 14px; font-size:11px; color:#92400E; margin-bottom:14px; line-height:1.45;">
+      ⚡ <strong>Lưu ý kỹ thuật Google Apps Script:</strong> Dung lượng tối đa tải lên an toàn qua giao diện là <strong>25 MB</strong>. Để đảm bảo video phát mượt và không bị timeout, hãy nén file MP4 (720p hoặc H.264). Với video bài giảng dài trên 25MB, quý Thầy/Cô có thể tải trực tiếp lên Google Drive rồi dán liên kết.
+    </div>
+
+    <form id="form-upload-video" onsubmit="handleVideoUploadSubmit(event)">
+      <!-- Dropzone chọn file -->
+      <div id="video-dropzone" class="dropzone-box" onclick="document.getElementById('file-video-input').click()">
+        <div class="dropzone-icon">☁️</div>
+        <div style="font-size:13px; font-weight:700; color:#1E293B;">Kéo thả tệp video vào đây hoặc <span style="color:#15803D; text-decoration:underline;">nhấn để duyệt file</span></div>
+        <div style="font-size:11px; color:#64748B; margin-top:4px;">Định dạng hỗ trợ: MP4, WebM (Tối đa 25MB)</div>
+        <input type="file" id="file-video-input" accept="video/mp4,video/webm,video/ogg,video/quicktime" style="display:none;" onchange="handleFileSelected(this)">
+      </div>
+
+      <!-- File info badge sau khi chọn -->
+      <div id="selected-file-info" style="display:none; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:10px 14px; margin-bottom:14px; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>🎬</span>
+          <div>
+            <div id="selected-file-name" style="font-size:12px; font-weight:700; color:#0F172A;">filename.mp4</div>
+            <div id="selected-file-size" style="font-size:10px; color:#64748B;">0 MB</div>
+          </div>
+        </div>
+        <button type="button" onclick="clearSelectedFile()" style="border:none; background:transparent; color:#EF4444; font-size:14px; cursor:pointer; font-weight:bold;">&times;</button>
+      </div>
+
+      <!-- Tiêu đề video -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Tiêu đề bài giảng <span style="color:#DC2626;">*</span></label>
+        <input type="text" id="upload-video-title" required placeholder="VD: Khái niệm & Công thức Thể tích Hình trụ..." style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #CBD5E1; font-size:13px; outline:none;">
+      </div>
+
+      <!-- Chọn hình học gán bài giảng -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Chủ đề Hình học</label>
+        <select id="upload-video-shape" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #CBD5E1; font-size:13px; background:#fff;">
+          <option value="cylinder">Hình Trụ (Toán 9)</option>
+          <option value="cone">Hình Nón (Toán 9)</option>
+          <option value="sphere">Hình Cầu (Toán 9)</option>
+          <option value="all">Chung toàn bộ chương</option>
+        </select>
+      </div>
+
+      <!-- Mô tả tóm tắt nội dung bài học -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:4px;">Mô tả nội dung bài học</label>
+        <textarea id="upload-video-desc" rows="2" placeholder="Ghi chú kiến thức trọng tâm, dấu mốc thời gian..." style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #CBD5E1; font-size:12px; outline:none; resize:none;"></textarea>
+      </div>
+
+      <!-- Tuỳ chọn: Gán làm video chính thức -->
+      <div style="margin-bottom:16px; background:#F8FAFC; padding:10px 14px; border-radius:10px; border:1px solid #E2E8F0;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#1E293B; cursor:pointer;">
+          <input type="checkbox" id="upload-video-assign" checked style="accent-color:#15803D; width:16px; height:16px;">
+          <span>Gán làm video bài giảng chính thức cho chủ đề này</span>
+        </label>
+        <p style="font-size:10px; color:#64748B; margin-left:24px; margin-top:2px;">Video này sẽ tự động hiển thị trong tab "Lý thuyết & Bài học" của học sinh.</p>
+      </div>
+
+      <!-- Progress bar trạng thái -->
+      <div id="upload-progress-box" style="display:none; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">
+          <span id="upload-status-text">Đang mã hoá và chuyển dữ liệu sang Google Drive...</span>
+          <span id="upload-percent-text">0%</span>
+        </div>
+        <div class="progress-bar-container">
+          <div id="upload-progress-bar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Nút hành động -->
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-outline" onclick="closeUploadModal()" id="btn-cancel-upload">Huỷ bỏ</button>
+        <button type="submit" class="btn btn-primary" id="btn-submit-upload">
+          <span>🚀 Bắt đầu tải lên Drive</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 2. MODAL: TRÌNH PHÁT VIDEO BÀI GIẢNG GOOGLE DRIVE -->
+<div id="modal-video-player" class="modal-backdrop">
+  <div class="modal-card" style="max-width:820px; padding:20px;">
+    <button type="button" class="modal-close-btn" onclick="closeVideoPlayerModal()">&times;</button>
+
+    <div style="margin-bottom:12px; padding-right:30px;">
+      <div id="player-modal-badge" style="display:inline-block; font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:#DCFCE7; color:#15803D; margin-bottom:4px; text-transform:uppercase;">
+        Hình Trụ
+      </div>
+      <h3 id="player-modal-title" style="font-size:16px; font-weight:800; color:#0F172A; line-height:1.4;">
+        Tiêu đề video
+      </h3>
+    </div>
+
+    <!-- Video Viewport Frame -->
+    <div style="position:relative; width:100%; padding-top:56.25%; background:#000; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.2);">
+      <iframe id="player-drive-iframe" src="" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="autoplay" allowfullscreen></iframe>
+    </div>
+
+    <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div style="font-size:11px; color:#64748B;">
+        <span id="player-modal-author">Giáo viên: ThS. Trần Ngọc Hiếu</span> • 
+        <span id="player-modal-size">15 MB</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <a id="player-drive-link" href="#" target="_blank" class="btn btn-outline" style="font-size:11px;">
+          <span>Mở trên Google Drive ↗</span>
+        </a>
+      </div>
+    </div>
+
+    <div id="player-modal-desc" style="margin-top:12px; padding:12px; background:#F8FAFC; border-radius:10px; font-size:12px; color:#334155; line-height:1.5;">
+      Mô tả bài học...
+    </div>
+  </div>
+</div>
+
+<!-- 3. MODAL: CHI TIẾT BÀI TẬP & LỜI GIẢI 4 BƯỚC -->
+<div id="modal-exercise-detail" class="modal-backdrop">
+  <div class="modal-card" style="max-width:720px;">
+    <button type="button" class="modal-close-btn" onclick="closeExerciseModal()">&times;</button>
+    
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <span id="ex-modal-badge" style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; background:#FEF3C7; color:#B45309; text-transform:uppercase;">TRẮC NGHIỆM</span>
+      <span id="ex-modal-shape" style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; background:#DCFCE7; color:#15803D; text-transform:uppercase;">HÌNH TRỤ</span>
+    </div>
+
+    <h3 id="ex-modal-title" style="font-size:16px; font-weight:800; color:#0F172A; margin-bottom:12px;">Đề bài toán</h3>
+    <div id="ex-modal-question" style="background:#FFFDF8; border:1px solid #E5DCCF; border-radius:12px; padding:14px; font-size:13px; color:#1E293B; line-height:1.6; margin-bottom:16px;">
+      Nội dung câu hỏi...
+    </div>
+
+    <!-- Timeline 4 Bước Giải Chuẩn Sư Phạm -->
+    <div style="margin-top:16px;">
+      <h4 style="font-size:13px; font-weight:800; color:#047857; display:flex; align-items:center; gap:6px;">
+        <span>🎯</span> LỜI GIẢI 4 BƯỚC SƯ PHẠM CHUẨN ĐỀ THI VÀO 10
+      </h4>
+      <div id="ex-modal-steps" class="step-timeline">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. KHUNG TOAST NOTIFICATIONS -->
+<div id="toast-container" class="toast-container"></div>

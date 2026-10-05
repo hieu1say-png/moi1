@@ -110,31 +110,31 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
               <span>Ký hiệu Chuẩn Toán 9:</span>
             </div>
             {shape === 'sphere' ? (
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[10px]">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px]">
                 <div><strong className="text-[#8F3E32]">O</strong>: Tâm hình cầu</div>
-                <div><strong className="text-[#4D6B42]">R</strong>: Bán kính ({radius}cm)</div>
-                <div><strong className="text-[#0284c7]">d = 2R</strong>: Đường kính ({radius * 2}cm)</div>
-                <div><strong className="text-[#634796]">C = 2πR</strong>: Chu vi xích đạo</div>
-                <div><strong className="text-[#8F3E32]">S = 4πR²</strong>: Diện tích mặt cầu</div>
-                <div><strong className="text-[#4D6B42]">V = 4/3 πR³</strong>: Thể tích khối cầu</div>
+                <div><strong className="text-[#4D6B42]">R</strong>: Bán kính ({radius} cm)</div>
+                <div><strong className="text-[#0284c7]"><MathText text="$d = 2R$" /></strong>: Đường kính ({radius * 2} cm)</div>
+                <div><strong className="text-[#634796]"><MathText text="$C = 2\pi R$" /></strong>: Chu vi xích đạo</div>
+                <div><strong className="text-[#8F3E32]"><MathText text="$S = 4\pi R^2$" /></strong>: Diện tích mặt cầu</div>
+                <div><strong className="text-[#4D6B42]"><MathText text="$V = \frac{4}{3}\pi R^3$" /></strong>: Thể tích khối cầu</div>
               </div>
             ) : shape === 'cone' ? (
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[10px]">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px]">
                 <div><strong className="text-[#8F3E32]">S</strong>: Đỉnh nón</div>
                 <div><strong className="text-[#8F3E32]">O</strong>: Tâm đáy</div>
-                <div><strong className="text-[#4D6B42]">r = OA</strong>: Bán kính ({radius}cm)</div>
-                <div><strong className="text-[#7A571B]">h = SO</strong>: Chiều cao ({height}cm)</div>
-                <div><strong className="text-[#634796]">l = SA</strong>: Đường sinh ({calculations.slantHeight}cm)</div>
-                <div><strong className="text-[#4D6B42]">d = 2r</strong>: Đường kính ({radius * 2}cm)</div>
+                <div><strong className="text-[#4D6B42]"><MathText text="$r = OA$" /></strong>: Bán kính ({radius} cm)</div>
+                <div><strong className="text-[#7A571B]"><MathText text="$h = SO$" /></strong>: Chiều cao ({height} cm)</div>
+                <div><strong className="text-[#634796]"><MathText text="$l = SA$" /></strong>: Đường sinh ({calculations.slantHeight} cm)</div>
+                <div><strong className="text-[#4D6B42]"><MathText text="$d = 2r$" /></strong>: Đường kính ({radius * 2} cm)</div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[10px]">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px]">
                 <div><strong className="text-[#8F3E32]">O</strong>: Tâm đáy dưới</div>
                 <div><strong className="text-[#8F3E32]">O'</strong>: Tâm đáy trên</div>
-                <div><strong className="text-[#4D6B42]">r</strong>: Bán kính ({radius}cm)</div>
-                <div><strong className="text-[#4D6B42]">d = 2r</strong>: Đường kính ({radius * 2}cm)</div>
-                <div><strong className="text-[#7A571B]">h = OO'</strong>: Chiều cao ({height}cm)</div>
-                <div><strong className="text-[#634796]">l = AA'</strong>: Đường sinh ({height}cm)</div>
+                <div><strong className="text-[#4D6B42]"><MathText text="$r$" /></strong>: Bán kính ({radius} cm)</div>
+                <div><strong className="text-[#4D6B42]"><MathText text="$d = 2r$" /></strong>: Đường kính ({radius * 2} cm)</div>
+                <div><strong className="text-[#7A571B]"><MathText text="$h = OO'$" /></strong>: Chiều cao ({height} cm)</div>
+                <div><strong className="text-[#634796]"><MathText text="$l = AA'$" /></strong>: Đường sinh ({height} cm)</div>
               </div>
             )}
           </div>
@@ -432,7 +432,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
                     {calculations.stp} <span className="text-[10px] font-sans font-normal text-[#766A61]">cm²</span>
                   </div>
                   <div className="text-[10px] text-[#766A61] font-mono">
-                    2πrh + 2πr²
+                    <MathText text="$2\pi rh + 2\pi r^2$" />
                   </div>
                 </div>
 

@@ -25,19 +25,22 @@ import { StudentProfileView } from '../student/StudentProfileView';
 import { GeometryMasterGameView } from '../../views/GeometryMasterGameView';
 import { LogoutConfirmModal } from '../auth/LogoutConfirmModal';
 import { FirstLoginChangePasswordModal } from '../auth/FirstLoginChangePasswordModal';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { MobileLayout } from '../../mobile/MobileLayout';
 
 const StudentRouteRenderer: React.FC = () => {
   const { currentRoute, navigateTo } = useApp();
 
-  // Strict RBAC Guard: If URL hash attempts to access teacher-only routes or /login, redirect safely to /home
+  // Strict RBAC Guard: Protect teacher-only dashboard routes, allow login transition
   useEffect(() => {
     if (
       currentRoute === '/teacher' ||
       currentRoute === '/teacher-dashboard' ||
-      currentRoute === '/settings' ||
-      currentRoute === '/login'
+      currentRoute === '/settings'
     ) {
       navigateTo('/home');
+    } else if (currentRoute === '/login') {
+      window.location.hash = '#/login';
     }
   }, [currentRoute, navigateTo]);
 
@@ -70,13 +73,20 @@ const StudentRouteRenderer: React.FC = () => {
 };
 
 export const StudentAppLayout: React.FC = () => {
+  const isMobile = useIsMobile(768);
+
   return (
     <>
-      <AppShell>
-        <StudentRouteRenderer />
-      </AppShell>
+      {isMobile ? (
+        <MobileLayout />
+      ) : (
+        <AppShell>
+          <StudentRouteRenderer />
+        </AppShell>
+      )}
       <LogoutConfirmModal />
       <FirstLoginChangePasswordModal />
     </>
   );
 };
+

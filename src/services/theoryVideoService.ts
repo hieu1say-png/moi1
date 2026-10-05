@@ -461,69 +461,15 @@ export class TheoryVideoService {
    * Prevents HTTP 413 Payload Too Large when Vercel Blob is not configured
    */
   public static async uploadChunked(
-    file: File,
-    onProgress?: (percent: number) => void
-  ): Promise<{ success: boolean; videoUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; error?: string }> {
-    const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk (safely below 4.5MB Vercel function limit)
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const uploadId = `chunk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const authHeaders = this.getAuthHeaders(false, 'teacher');
-
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunkBlob = file.slice(start, end);
-
-      const formData = new FormData();
-      formData.append('chunk', chunkBlob, file.name);
-      formData.append('uploadId', uploadId);
-      formData.append('chunkIndex', String(chunkIndex));
-      formData.append('totalChunks', String(totalChunks));
-      formData.append('fileName', file.name);
-      formData.append('fileSize', String(file.size));
-      formData.append('mimeType', file.type || 'video/mp4');
-
-      try {
-        const response = await fetch('/api/theory-videos/chunk-upload', {
-          method: 'POST',
-          headers: authHeaders,
-          body: formData
-        });
-
-        if (!response.ok) {
-          const errJson = await response.json().catch(() => ({}));
-          return {
-            success: false,
-            error: errJson.error || errJson.message || `Lỗi tải lên mảnh ${chunkIndex + 1}/${totalChunks} (HTTP ${response.status})`
-          };
-        }
-
-        const resData = await response.json();
-
-        if (onProgress) {
-          const percent = Math.min(Math.round(((chunkIndex + 1) / totalChunks) * 100), 99);
-          onProgress(percent);
-        }
-
-        if (chunkIndex === totalChunks - 1 && resData.completed) {
-          if (onProgress) onProgress(100);
-          return {
-            success: true,
-            videoUrl: resData.videoUrl,
-            fileName: resData.fileName || file.name,
-            fileSize: resData.fileSize || file.size,
-            mimeType: resData.mimeType || file.type
-          };
-        }
-      } catch (networkErr: any) {
-        return {
-          success: false,
-          error: networkErr.message || 'Lỗi mạng khi tải lên phân mảnh video.'
-        };
-      }
-    }
-
-    return { success: false, error: 'Không thể hoàn tất ghép nối các phân mảnh video.' };
+    _file: File,
+    _onProgress?: (percent: number) => void
+  ): Promise<{ success: boolean; videoUrl?: string; fileName?: string; fileSize?: number; mimeType?: string; error?: string; code?: string }> {
+    console.warn('[UPLOAD] Local chunked upload is permanently disabled. Vercel Blob Direct Client Upload is mandatory.');
+    return {
+      success: false,
+      code: 'CHUNK_UPLOAD_DISABLED',
+      error: 'Tính năng tải lên cục bộ đã bị vô hiệu hóa. Hệ thống yêu cầu tải trực tiếp qua Vercel Blob để đảm bảo tốc độ và an toàn dữ liệu.'
+    };
   }
 
   /**
@@ -574,6 +520,7 @@ export class TheoryVideoService {
     fileSize?: number;
     mimeType?: string;
     error?: string;
+    code?: string;
   }> {
     // 0. Pre-flight client-side validation
     const validation = this.validateVideoFile(file);
@@ -586,23 +533,36 @@ export class TheoryVideoService {
 
     // 2. Query storage configuration to determine upload provider
     let isBlobConfigured = false;
+    let isServerless = false;
     try {
       const cfgRes = await fetch('/api/theory-videos/storage-config');
       if (cfgRes.ok) {
         const cfg = await cfgRes.json();
         isBlobConfigured = Boolean(cfg.blobConfigured);
+        isServerless = Boolean(cfg.isServerless);
       }
     } catch {
       isBlobConfigured = false;
     }
 
-    // If Vercel Blob is not configured on the environment, use server-side chunked upload directly
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]');
+
+    // Direct Vercel Blob Client Upload is MANDATORY for all environments (zero chunk fallback).
     if (!isBlobConfigured) {
-      console.info('[UPLOAD] Object Storage BLOB_READ_WRITE_TOKEN not active. Using secure server-side upload pipeline.');
-      return this.uploadChunked(file, onProgress);
+      console.warn('[UPLOAD] Vercel Blob is not configured. BLOB_READ_WRITE_TOKEN is missing.');
+      return {
+        success: false,
+        code: 'BLOB_NOT_CONFIGURED',
+        error:
+          'Chưa kết nối kho lưu trữ video. Vui lòng thêm biến môi trường BLOB_READ_WRITE_TOKEN trong Vercel Project Settings để bật tính năng tải video trực tiếp lên Cloud.'
+      };
     }
 
-    // 3. Direct Vercel Blob Client Upload (when BLOB_READ_WRITE_TOKEN is configured)
+    // 3. Direct Vercel Blob Client Upload (Production Standard)
     try {
       const { upload } = await import('@vercel/blob/client');
       const teacherId = this.getTeacherId();
@@ -615,7 +575,7 @@ export class TheoryVideoService {
         access: 'public',
         handleUploadUrl: '/api/theory-videos/blob-upload',
         headers: authHeaders,
-        multipart: true, // Crucial for files > 4.5MB (5MB, 10MB, 20MB, 50MB, 100MB+)
+        multipart: true, // Crucial for files > 4.5MB (supports 5MB, 20MB, 50MB, 100MB+)
         onUploadProgress: (progress) => {
           if (onProgress && progress.total) {
             const percent = Math.min(100, Math.round((progress.loaded / progress.total) * 100));
@@ -641,9 +601,10 @@ export class TheoryVideoService {
       const errMsg = String(blobErr?.message || blobErr || '');
 
       // HTTP 401 Unauthorized
-      if (blobErr?.status === 401 || errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+      if (blobErr?.status === 401 || errMsg.includes('401') || errMsg.includes('Unauthorized') || errMsg.includes('TEACHER_AUTH_REQUIRED')) {
         return {
           success: false,
+          code: 'AUTH_EXPIRED',
           error: 'Phiên đăng nhập của giáo viên đã hết hạn hoặc không có quyền (HTTP 401). Vui lòng đăng nhập lại.'
         };
       }
@@ -652,6 +613,7 @@ export class TheoryVideoService {
       if (blobErr?.status === 403 || errMsg.includes('403')) {
         return {
           success: false,
+          code: 'FORBIDDEN',
           error: 'Bạn không có quyền thực hiện thao tác tải video (HTTP 403).'
         };
       }
@@ -660,27 +622,28 @@ export class TheoryVideoService {
       if (blobErr?.status === 413 || errMsg.includes('413')) {
         return {
           success: false,
+          code: 'PAYLOAD_TOO_LARGE',
           error: 'Dung lượng tệp vượt quá giới hạn tối đa cho phép của dịch vụ lưu trữ (HTTP 413).'
         };
       }
 
-      // If token retrieval failed, fallback to resilient server-side chunked upload
-      if (
-        errMsg.includes('Failed to retrieve the client token') ||
-        errMsg.includes('BLOB_NOT_CONFIGURED') ||
-        errMsg.includes('BLOB_READ_WRITE_TOKEN') ||
-        blobErr?.status === 503
-      ) {
-        console.info('[UPLOAD] Client token retrieval skipped. Falling back to secure server-side chunked upload.');
-        return this.uploadChunked(file, onProgress);
+      // Vercel Blob Token missing
+      if (errMsg.includes('BLOB_NOT_CONFIGURED') || errMsg.includes('BLOB_READ_WRITE_TOKEN')) {
+        return {
+          success: false,
+          code: 'BLOB_NOT_CONFIGURED',
+          error: 'Chưa kết nối kho lưu trữ video. Vui lòng cấu hình Vercel Blob.'
+        };
       }
 
-      // Fallback for any other network issues during blob client upload
-      console.info('[UPLOAD] Falling back to server-side chunked upload.');
-      return this.uploadChunked(file, onProgress);
+      return {
+        success: false,
+        code: 'BLOB_UPLOAD_FAILED',
+        error: `Tải video lên Vercel Blob thất bại: ${errMsg || 'Lỗi mạng hoặc chưa cấu hình BLOB_READ_WRITE_TOKEN'}`
+      };
     }
 
-    return { success: false, error: 'Không thể kết nối đến kho lưu trữ video.' };
+    return { success: false, code: 'BLOB_CONNECT_ERROR', error: 'Không thể kết nối đến kho lưu trữ video Vercel Blob.' };
   }
 
   /**
@@ -732,10 +695,24 @@ export class TheoryVideoService {
         return { success: true, thumbnailUrl: blob.url, fileName: file.name };
       }
     } catch (blobErr: any) {
-      console.warn('[UPLOAD] Thumbnail Blob upload skipped, falling back to multipart:', blobErr?.message || blobErr);
+      console.warn('[UPLOAD] Thumbnail Blob upload skipped:', blobErr?.message || blobErr);
     }
 
-    // 2. Server multipart fallback
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]');
+
+    // On Production/Vercel: Do not fallback to local server disk (read-only filesystem)
+    if (!isLocalhost) {
+      return {
+        success: false,
+        error: 'Tải ảnh thumbnail lên Vercel Blob thất bại. Vui lòng kiểm tra biến môi trường BLOB_READ_WRITE_TOKEN trên Vercel Dashboard.'
+      };
+    }
+
+    // 2. Server multipart fallback (Local development ONLY)
     try {
       const formData = new FormData();
       formData.append('thumbnail', file);
@@ -753,7 +730,7 @@ export class TheoryVideoService {
         }
       }
       const errJson = await res.json().catch(() => ({}));
-      return { success: false, error: errJson.message || errJson.error || 'Lỗi tải ảnh thumbnail lên máy chủ.' };
+      return { success: false, error: errJson.message || errJson.error || 'Lỗi tải ảnh thumbnail lên máy chủ cục bộ.' };
     } catch (err: any) {
       return { success: false, error: err.message || 'Lỗi kết nối mạng khi tải ảnh thumbnail.' };
     }
@@ -1283,6 +1260,7 @@ export class TheoryVideoService {
           shapeType: shape,
           videoUrl: uploadRes.videoUrl,
           downloadURL: uploadRes.videoUrl,
+          storageType: 'vercel_blob',
           storagePath: uploadRes.storagePath || uploadRes.videoUrl,
           fileId: uploadRes.fileId || `file_${Date.now()}`,
           title: title || `Video bài học ${shapeNameVn}`,

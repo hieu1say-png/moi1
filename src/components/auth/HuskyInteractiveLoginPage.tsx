@@ -34,7 +34,8 @@ import {
   AlertCircle,
   Sparkles,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -94,28 +95,22 @@ export const HuskyInteractiveLoginPage: React.FC<HuskyInteractiveLoginPageProps>
 
   // Mascot dynamic status message
   const getMascotMessage = () => {
-    if (isHappy) return 'Welcome back! Chúc em buổi học thật tuyệt vời! ✨';
-    if (isDoorOpen) return 'Cánh cửa mở rồi! Mời em bước vào phòng thí nghiệm! 🚪';
-    if (generalError) return 'Ái chà! Em kiểm tra lại tài khoản hoặc mật khẩu nhé! 🐶';
-    if (isCoveringEyes) return 'Suỵt! Husky che mắt rồi, không nhìn lén mật khẩu đâu! 🙈';
-    if (showPassword && isPasswordFocused) return 'Oa! Mật khẩu hiện rõ rồi nha! 👀✨';
-    if (username.length > 0) return 'Husky đang theo dõi từng ký tự em gõ nè! 🐾';
-    return 'Gâu gâu! Chào mừng bạn đến với Geometry Lab! 🐶';
+    if (isHappy) return 'Xác thực thành công! Kính chúc Thầy/Cô làm việc hiệu quả! ✨';
+    if (isDoorOpen) return 'Cánh cửa mở rồi! Mời Thầy/Cô bước vào bàn làm việc! 🚪';
+    if (generalError) return 'Thầy/Cô kiểm tra lại tài khoản hoặc mật khẩu giáo viên nhé! 🐶';
+    if (isCoveringEyes) return 'Suỵt! Husky che mắt rồi, bảo mật thông tin tuyệt đối! 🙈';
+    if (showPassword && isPasswordFocused) return 'Mật khẩu đang hiển thị trên màn hình! 👀✨';
+    if (username.length > 0) return 'Husky đang ghi nhận thông tin Thầy/Cô gõ nè! 🐾';
+    return 'Gâu gâu! Chào mừng Thầy/Cô đến với Cổng Quản Trị Giáo Viên! 🐶';
   };
 
-  // Quick fill helper
-  const handleQuickFill = (role: 'student' | 'teacher') => {
-    setAuthMode(role);
+  // Quick fill helper for teacher
+  const handleQuickFill = () => {
+    setAuthMode('teacher');
     setGeneralError(null);
-    if (role === 'student') {
-      setUsername('demo9a2');
-      setPassword('Demo@123');
-      setPupilOffset({ x: 2.4, y: 3.5 });
-    } else {
-      setUsername('hieu1say');
-      setPassword('gvtoan9@2025');
-      setPupilOffset({ x: 2.8, y: 3.5 });
-    }
+    setUsername('hieu1say');
+    setPassword('gvtoan9@2025');
+    setPupilOffset({ x: 2.8, y: 3.5 });
   };
 
   // Social Login Mock / Guidance
@@ -490,40 +485,19 @@ export const HuskyInteractiveLoginPage: React.FC<HuskyInteractiveLoginPageProps>
             </p>
           </div>
 
-          {/* Role Toggle Selector [ Học Sinh ] [ Giáo Viên ] */}
-          <div className="w-full flex p-1 rounded-2xl bg-slate-100/90 border border-slate-200/80 shadow-2xs">
+          {/* Role Header Indicator: Teacher Only */}
+          <div className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900 text-white shadow-xs">
+            <div className="flex items-center gap-2 pl-2">
+              <ShieldCheck className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold uppercase tracking-wider">ĐĂNG NHẬP GIÁO VIÊN</span>
+            </div>
             <button
-              id="husky-role-student"
               type="button"
-              onClick={() => {
-                setAuthMode('student');
-                setGeneralError(null);
-              }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                authMode === 'student'
-                  ? 'bg-white text-orange-600 shadow-xs border border-orange-100'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={() => { window.location.hash = '#/home'; }}
+              className="text-[11px] text-amber-300 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer font-medium"
             >
-              <GraduationCap className="w-4 h-4" />
-              <span>Học Sinh</span>
-            </button>
-
-            <button
-              id="husky-role-teacher"
-              type="button"
-              onClick={() => {
-                setAuthMode('teacher');
-                setGeneralError(null);
-              }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                authMode === 'teacher'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <span>Giáo Viên</span>
+              <ArrowLeft className="w-3 h-3" />
+              <span>Về phòng học</span>
             </button>
           </div>
 
@@ -554,7 +528,7 @@ export const HuskyInteractiveLoginPage: React.FC<HuskyInteractiveLoginPageProps>
                   type="text"
                   value={username}
                   onChange={handleUsernameChange}
-                  placeholder={authMode === 'student' ? 'Ví dụ: demo9a2' : 'Ví dụ: giaovien'}
+                  placeholder="Ví dụ: hieu1say hoặc giaovien"
                   disabled={isLoading}
                   autoComplete="username"
                   className="w-full pl-10 pr-3.5 py-3 bg-slate-50/90 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500 transition-all"
@@ -678,19 +652,19 @@ export const HuskyInteractiveLoginPage: React.FC<HuskyInteractiveLoginPageProps>
             </div>
           </form>
 
-          {/* Quick 1-Click Demo Shortcut Chips */}
+          {/* Quick 1-Click Teacher Demo Shortcut Chips */}
           <div className="pt-1 space-y-1.5 border-t border-slate-100">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>Tài khoản thử nghiệm có sẵn:</span>
+              <span>Tài khoản thử nghiệm giáo viên:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickFill('student')}
-                className="px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-700 text-[11px] font-semibold hover:bg-orange-100 transition-colors flex items-center gap-1 cursor-pointer"
+                onClick={handleQuickFill}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-semibold hover:bg-amber-100 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <GraduationCap className="w-3 h-3" />
-                <span>demo9a2 (Học sinh)</span>
+                <ShieldCheck className="w-3 h-3 text-amber-600" />
+                <span>hieu1say (ThS. Trần Ngọc Hiếu)</span>
               </button>
             </div>
           </div>

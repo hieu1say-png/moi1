@@ -1,0 +1,6 @@
+{
+  "summary":  "Kế hoạch chi tiết triển khai 13 Sprint cho GEOMETRY LAB từ Sprint 1 (Kiến trúc hệ thống) đến Sprint 13 (Deploy Production). Đảm bảo chuẩn Clean Architecture, Database Schema Relational, KaTeX Formula Engine, 3D Geometry Lab Pixar Style, Video Vercel Blob và RBAC.",
+  "updatedAt":  "2026-09-26T07:55:36.035134619Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

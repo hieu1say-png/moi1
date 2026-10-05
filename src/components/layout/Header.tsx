@@ -16,7 +16,6 @@ import { useTeacherAI } from '../teacher-ai/TeacherContext';
 import {
   Layers,
   Map,
-  Bot,
   Brain,
   Menu,
   X,
@@ -296,26 +295,6 @@ export const Header: React.FC = () => {
                   <span>STEM</span>
                 </button>
 
-                {/* 6. AI Tutor */}
-                <button
-                  id="student-nav-ai"
-                  type="button"
-                  onClick={() => navigateTo('/ai')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    currentRoute === '/ai'
-                      ? 'bg-blue-600 text-white font-bold border border-blue-600 shadow-2xs'
-                      : 'text-blue-700 bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/60'
-                  }`}
-                >
-                  <Bot className={`w-3.5 h-3.5 ${currentRoute === '/ai' ? 'text-white' : 'text-blue-700'}`} />
-                  <span>AI Tutor</span>
-                  <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold ${
-                    currentRoute === '/ai' ? 'bg-white/20 text-white' : 'bg-white text-blue-700 border border-blue-200'
-                  }`}>
-                    24/7
-                  </span>
-                </button>
-
                 {/* 7. Ôn thi vào 10 */}
                 <button
                   id="student-nav-exam-prep"
@@ -363,6 +342,23 @@ export const Header: React.FC = () => {
                     <Brain className="w-3.5 h-3.5 text-amber-600" />
                     <span className="hidden xl:inline">Hồ sơ</span>
                   </button>
+
+                  {/* Quick Teacher Portal Button */}
+                  {!isTeacher && (
+                    <button
+                      id="header-teacher-portal-btn"
+                      type="button"
+                      onClick={() => {
+                        window.location.hash = '#/login';
+                        navigateTo('/login');
+                      }}
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-900 bg-[#ffe17c] hover:bg-amber-300 border-2 border-slate-900 shadow-[2px_2px_0_#171e19] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer ml-1"
+                      title="Cổng Đăng Nhập Giáo Viên Quản Trị"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-900" />
+                      <span>Giáo Viên</span>
+                    </button>
+                  )}
 
                   {/* Dropdown Popup */}
                   {isMenuOpen && (
@@ -468,12 +464,13 @@ export const Header: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setIsMenuOpen(false);
+                              window.location.hash = '#/login';
                               navigateTo('/login');
                             }}
-                            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
+                            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
                           >
-                            <LogIn className="w-3.5 h-3.5" />
-                            Đăng nhập tài khoản học sinh
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Đăng nhập Giáo Viên</span>
                           </button>
                         ) : null}
                       </div>
@@ -490,19 +487,19 @@ export const Header: React.FC = () => {
                       exitStudentPreview();
                       navigateTo('/teacher-dashboard');
                     } else {
-                      navigateTo(isStudentAuthenticated ? '/student-profile' : '/login');
+                      navigateTo('/student-profile');
                     }
                   }}
                   className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 bg-white hover:bg-slate-50 rounded-full border border-slate-200 shadow-2xs transition-colors cursor-pointer ml-1"
-                  title={isStudentPreview ? "Đang xem trước học sinh - Nhấn để quay lại Bàn làm việc GV" : isStudentAuthenticated ? "Hồ sơ tài khoản của em" : "Đăng nhập học sinh"}
+                  title={isStudentPreview ? "Đang xem trước học sinh - Nhấn để quay lại Bàn làm việc GV" : "Hồ sơ của em"}
                 >
                   <div className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold shadow-2xs ${
                     isStudentPreview ? 'bg-amber-600' : 'bg-gradient-to-br from-blue-600 to-indigo-600'
                   }`}>
-                    {isStudentPreview ? <Eye className="w-3.5 h-3.5" /> : isStudentAuthenticated ? getAvatarInitial(studentUser?.fullName) : <LogIn className="w-3.5 h-3.5" />}
+                    {isStudentPreview ? <Eye className="w-3.5 h-3.5" /> : getAvatarInitial(studentUser?.fullName)}
                   </div>
                   <span className="text-xs font-bold text-slate-800 hidden xl:inline truncate max-w-[120px]">
-                    {isStudentPreview ? 'Xem Trước HS' : isStudentAuthenticated ? (studentUser?.fullName || 'Học sinh') : 'Đăng nhập'}
+                    {isStudentPreview ? 'Xem Trước HS' : (studentUser?.fullName || 'Học sinh')}
                   </span>
                 </button>
               </nav>
@@ -724,28 +721,6 @@ export const Header: React.FC = () => {
                       <span>STEM</span>
                     </button>
 
-                    {/* 6. AI Tutor */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigateTo('/ai');
-                        setIsMobileDrawerOpen(false);
-                      }}
-                      className={`w-full min-h-[48px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                        currentRoute === '/ai' ? 'bg-blue-600 text-white font-bold' : 'bg-blue-50 text-blue-700'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <Bot className="w-5 h-5" />
-                        <span>AI Tutor</span>
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-extrabold ${
-                        currentRoute === '/ai' ? 'bg-white/20 text-white' : 'bg-white text-blue-700 border border-blue-200'
-                      }`}>
-                        24/7
-                      </span>
-                    </button>
-
                     {/* 7. Ôn thi vào 10 */}
                     <button
                       type="button"
@@ -822,17 +797,18 @@ export const Header: React.FC = () => {
                 </button>
               )}
 
-              {!isStudentAuthenticated && !isTeacher && (
+              {!isTeacher && (
                 <button
                   type="button"
                   onClick={() => {
                     setIsMobileDrawerOpen(false);
+                    window.location.hash = '#/login';
                     navigateTo('/login');
                   }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-white bg-orange-500 rounded-xl shadow-xs"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold text-slate-900 bg-[#ffe17c] border border-slate-900 rounded-xl shadow-[2px_2px_0_#171e19]"
                 >
-                  <LogIn className="w-4 h-4" />
-                  <span>Đăng nhập tài khoản</span>
+                  <ShieldCheck className="w-4 h-4 text-slate-900" />
+                  <span>Cổng Đăng Nhập Giáo Viên</span>
                 </button>
               )}
             </div>

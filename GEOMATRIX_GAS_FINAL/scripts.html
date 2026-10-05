@@ -1,0 +1,870 @@
+<script>
+/**
+ * =========================================================================
+ * GEOMATRIX - GOOGLE APPS SCRIPT WEB APP FRONTEND JAVASCRIPT
+ * Tương thích 100% với google.script.run, Three.js 3D & KaTeX Math Rendering
+ * =========================================================================
+ */
+
+// Trạng thái ứng dụng toàn cục
+const appState = {
+  currentShape: 'cylinder',
+  currentTab: 'home',
+  initialData: null,
+  videos: [],
+  assignedVideos: { cylinder: null, cone: null, sphere: null },
+  storageInfo: null,
+  
+  // Thông số 3D mặc định
+  params: {
+    cylinder: { r: 3, h: 6 },
+    cone: { r: 3, h: 4 },
+    sphere: { r: 4, h: 0 }
+  },
+
+  // Bộ nhớ đệm tệp video đang chuẩn bị upload
+  selectedUploadFile: null,
+  selectedUploadBase64: null,
+
+  // Bộ câu hỏi ôn thi vào 10 chuẩn
+  exercises: [
+    {
+      id: 'EX-CYL-01',
+      shape: 'cylinder',
+      type: 'TRẮC NGHIỆM',
+      title: 'Tính diện tích xung quanh vỏ lon nước ngọt hình trụ',
+      question: 'Một lon nước ngọt hình trụ có bán kính đáy $r = 3\\text{ cm}$ và chiều cao $h = 10\\text{ cm}$. Tính diện tích xung quanh của lon nước ngọt đó (lấy $\\pi \\approx 3.14$).',
+      options: ['188.4 cm²', '94.2 cm²', '282.6 cm²', '300 cm²'],
+      correctAnswer: 0,
+      answerLabel: '188.4 cm²',
+      steps: [
+        { title: 'Bước 1: Xác định đại lượng đã cho', content: 'Hình trụ có bán kính đáy $r = 3\\text{ cm}$, chiều cao $h = 10\\text{ cm}$. Yêu cầu tính diện tích xung quanh $S_{xq}$.' },
+        { title: 'Bước 2: Chọn công thức chuẩn SGK Toán 9', content: 'Công thức diện tích xung quanh hình trụ: $S_{xq} = 2\\pi rh$.' },
+        { title: 'Bước 3: Thay số và thực hiện phép tính', content: '$S_{xq} = 2 \\times 3.14 \\times 3 \\times 10 = 188.4\\text{ cm}^2$.' },
+        { title: 'Bước 4: Bẫy đề thi & Kết luận', content: 'Tránh nhầm lẫn với diện tích toàn phần (cộng thêm 2 đáy) hoặc quên nhân hệ số 2. Kết luận: Diện tích xung quanh là $188.4\\text{ cm}^2$.' }
+      ]
+    },
+    {
+      id: 'EX-CON-01',
+      shape: 'cone',
+      type: 'TỰ LUẬN',
+      title: 'Đường sinh và thể tích chiếc nón lá bài thơ',
+      question: 'Một chiếc nón lá hình nón có đường kính đáy $d = 40\\text{ cm}$ và chiều cao $h = 15\\text{ cm}$. Tính độ dài đường sinh $l$ và thể tích không gian bên trong chiếc nón (lấy $\\pi \\approx 3.14$).',
+      options: ['$l = 25\\text{ cm}, V \\approx 6280\\text{ cm}^3$', '$l = 20\\text{ cm}, V \\approx 5000\\text{ cm}^3$', '$l = 30\\text{ cm}, V \\approx 8000\\text{ cm}^3$'],
+      correctAnswer: 0,
+      answerLabel: 'l = 25 cm, V ≈ 6280 cm³',
+      steps: [
+        { title: 'Bước 1: Quy đổi đường kính về bán kính đáy', content: 'Bán kính đáy $r = d / 2 = 40 / 2 = 20\\text{ cm}$. Chiều cao $h = 15\\text{ cm}$.' },
+        { title: 'Bước 2: Áp dụng định lý Pytago tìm đường sinh l', content: 'Tam giác vuông tạo bởi trục và bán kính đáy: $l = \\sqrt{r^2 + h^2} = \\sqrt{20^2 + 15^2} = \\sqrt{400 + 225} = 25\\text{ cm}$.' },
+        { title: 'Bước 3: Tính thể tích hình nón', content: '$V = \\frac{1}{3}\\pi r^2 h = \\frac{1}{3} \\times 3.14 \\times 20^2 \\times 15 = 3.14 \\times 400 \\times 5 = 6280\\text{ cm}^3$.' },
+        { title: 'Bước 4: Nhắc nhở bẫy hay gặp', content: 'Học sinh hay quên hệ số 1/3 trong thể tích hình nón hoặc lấy nhầm đường kính 40cm thay vì bán kính 20cm.' }
+      ]
+    },
+    {
+      id: 'EX-SPH-01',
+      shape: 'sphere',
+      type: 'TRẮC NGHIỆM',
+      title: 'Diện tích mặt và thể tích quả địa cầu trong phòng học',
+      question: 'Quả địa cầu mô hình phòng học có bán kính $R = 12\\text{ cm}$. Tính diện tích mặt cầu và thể tích của quả địa cầu (lấy $\\pi \\approx 3.14$).',
+      options: ['$S \\approx 1808.64\\text{ cm}^2, V \\approx 7234.56\\text{ cm}^3$', '$S \\approx 900\\text{ cm}^2, V \\approx 3600\\text{ cm}^3$', '$S \\approx 2000\\text{ cm}^2, V \\approx 9000\\text{ cm}^3$'],
+      correctAnswer: 0,
+      answerLabel: 'S ≈ 1808.64 cm², V ≈ 7234.56 cm³',
+      steps: [
+        { title: 'Bước 1: Xác định bán kính quả cầu', content: 'Bán kính quả cầu $R = 12\\text{ cm}$.' },
+        { title: 'Bước 2: Tính diện tích mặt cầu', content: '$S = 4\\pi R^2 = 4 \\times 3.14 \\times 12^2 = 4 \\times 3.14 \\times 144 = 1808.64\\text{ cm}^2$.' },
+        { title: 'Bước 3: Tính thể tích khối cầu', content: '$V = \\frac{4}{3}\\pi R^3 = \\frac{4}{3} \\times 3.14 \\times 12^3 = \\frac{4}{3} \\times 3.14 \\times 1728 = 7234.56\\text{ cm}^3$.' },
+        { title: 'Bước 4: Lưu ý số mũ', content: 'Diện tích dùng số mũ 2 ($R^2$), thể tích dùng hệ số 4/3 và số mũ 3 ($R^3$).' }
+      ]
+    }
+  ]
+};
+
+// Khởi chạy ứng dụng khi DOM tải xong
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('GEOMATRIX Web App khởi chạy...');
+  initThreeJS();
+  loadInitialData();
+  setupEventListeners();
+  renderCalculations();
+  renderMath();
+});
+
+/**
+ * 1. Gọi Google Apps Script Backend để nạp dữ liệu ban đầu
+ */
+function loadInitialData() {
+  showToast('Đang kết nối Google Drive & Sheets...', 'info');
+
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function(response) {
+        if (response && response.success) {
+          appState.initialData = response.data;
+          appState.videos = response.data.videos || [];
+          appState.assignedVideos = response.data.assignedVideos || {};
+          appState.storageInfo = response.data.storage || null;
+
+          renderAssignedLessonVideo();
+          renderVideoBank();
+          renderStorageOverview();
+          showToast('Đã kết nối thành công với Google Drive Database!', 'success');
+        } else {
+          showToast(response ? response.message : 'Lỗi kết nối máy chủ', 'error');
+        }
+      })
+      .withFailureHandler(function(err) {
+        console.error('Lỗi khi gọi apiGetInitialAppData:', err);
+        showToast('Lỗi nạp dữ liệu từ Google Apps Script: ' + err.message, 'error');
+      })
+      .apiGetInitialAppData();
+  } else {
+    console.warn('Đang chạy ngoài môi trường Google Apps Script container. Sử dụng dữ liệu khởi tạo cục bộ.');
+    renderAssignedLessonVideo();
+    renderVideoBank();
+  }
+}
+
+/**
+ * 2. Thiết lập bộ lắng nghe sự kiện
+ */
+function setupEventListeners() {
+  // Drag & drop video file vào dropzone
+  const dropzone = document.getElementById('video-dropzone');
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropzone.addEventListener('drop', e => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        processSelectedFile(files[0]);
+      }
+    }, false);
+  }
+}
+
+/**
+ * 3. Chuyển đổi tab điều hướng
+ */
+function switchTab(tabId) {
+  appState.currentTab = tabId;
+
+  // Cập nhật trạng thái nút tab
+  document.querySelectorAll('.nav-tab-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-tab') === tabId);
+  });
+
+  // Cập nhật hiển thị view
+  document.querySelectorAll('.tab-view-content').forEach(el => {
+    el.classList.toggle('active', el.id === 'view-' + tabId);
+  });
+
+  // Kích hoạt render lại nếu chuyển sang 3D Lab hoặc Math
+  if (tabId === 'lab3d') {
+    setTimeout(onWindowResize, 100);
+  }
+  renderMath();
+}
+
+/**
+ * 4. Chuyển đổi hình học trọng tâm (Hình Trụ, Nón, Cầu)
+ */
+function switchShape(shape) {
+  if (!['cylinder', 'cone', 'sphere'].includes(shape)) return;
+  appState.currentShape = shape;
+
+  // Cập nhật nút shape
+  document.querySelectorAll('.shape-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-shape') === shape);
+  });
+
+  // Cập nhật tên hiển thị ở các vị trí
+  const shapeNames = { cylinder: 'Hình Trụ', cone: 'Hình Nón', sphere: 'Hình Cầu' };
+  document.querySelectorAll('.current-shape-name').forEach(el => {
+    el.textContent = shapeNames[shape];
+  });
+
+  // Ẩn hiện thanh trượt chiều cao h nếu là hình cầu
+  const heightSliderBox = document.getElementById('control-box-height');
+  if (heightSliderBox) {
+    heightSliderBox.style.display = shape === 'sphere' ? 'none' : 'block';
+  }
+
+  // Cập nhật thanh trượt về giá trị hiện tại của hình đó
+  const currentP = appState.params[shape];
+  const rSlider = document.getElementById('slider-radius');
+  const hSlider = document.getElementById('slider-height');
+  if (rSlider) rSlider.value = currentP.r;
+  if (hSlider) hSlider.value = currentP.h;
+
+  update3DGeometry();
+  renderCalculations();
+  renderAssignedLessonVideo();
+  renderMath();
+}
+
+/**
+ * 5. Cập nhật thông số từ thanh trượt
+ */
+function onParamChange(paramName, val) {
+  const numVal = parseFloat(val);
+  const shape = appState.currentShape;
+  appState.params[shape][paramName] = numVal;
+
+  update3DGeometry();
+  renderCalculations();
+  renderMath();
+}
+
+/**
+ * 6. Tính toán công thức diện tích và thể tích thời gian thực
+ */
+function renderCalculations() {
+  const shape = appState.currentShape;
+  const p = appState.params[shape];
+  const pi = Math.PI;
+
+  const valR = document.getElementById('val-radius');
+  const valH = document.getElementById('val-height');
+  if (valR) valR.textContent = p.r + ' cm';
+  if (valH) valH.textContent = p.h + ' cm';
+
+  let sxq = 0, stp = 0, v = 0, l = 0;
+
+  if (shape === 'cylinder') {
+    sxq = 2 * pi * p.r * p.h;
+    stp = sxq + 2 * pi * Math.pow(p.r, 2);
+    v = pi * Math.pow(p.r, 2) * p.h;
+
+    setFormulaText('calc-res-sxq', `${sxq.toFixed(2)} cm² (${(2 * p.r * p.h).toFixed(1)}π)`);
+    setFormulaText('calc-res-stp', `${stp.toFixed(2)} cm²`);
+    setFormulaText('calc-res-v', `${v.toFixed(2)} cm³ (${(Math.pow(p.r, 2) * p.h).toFixed(1)}π)`);
+    toggleRow('calc-row-l', false);
+    toggleRow('calc-row-sxq', true);
+    toggleRow('calc-row-stp', true);
+  } else if (shape === 'cone') {
+    l = Math.sqrt(Math.pow(p.r, 2) + Math.pow(p.h, 2));
+    sxq = pi * p.r * l;
+    stp = sxq + pi * Math.pow(p.r, 2);
+    v = (1 / 3) * pi * Math.pow(p.r, 2) * p.h;
+
+    setFormulaText('calc-res-l', `${l.toFixed(2)} cm`);
+    setFormulaText('calc-res-sxq', `${sxq.toFixed(2)} cm²`);
+    setFormulaText('calc-res-stp', `${stp.toFixed(2)} cm²`);
+    setFormulaText('calc-res-v', `${v.toFixed(2)} cm³`);
+    toggleRow('calc-row-l', true);
+    toggleRow('calc-row-sxq', true);
+    toggleRow('calc-row-stp', true);
+  } else if (shape === 'sphere') {
+    stp = 4 * pi * Math.pow(p.r, 2);
+    v = (4 / 3) * pi * Math.pow(p.r, 3);
+
+    setFormulaText('calc-res-stp', `${stp.toFixed(2)} cm² (${(4 * Math.pow(p.r, 2)).toFixed(1)}π)`);
+    setFormulaText('calc-res-v', `${v.toFixed(2)} cm³ (${((4/3) * Math.pow(p.r, 3)).toFixed(1)}π)`);
+    toggleRow('calc-row-l', false);
+    toggleRow('calc-row-sxq', false);
+    toggleRow('calc-row-stp', true);
+  }
+}
+
+function setFormulaText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function toggleRow(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? 'flex' : 'none';
+}
+
+/**
+ * 7. Khởi tạo Three.js 3D Canvas
+ */
+let threeScene, threeCamera, threeRenderer, current3DMesh, isWireframe = false;
+let isDragging = false, prevMouseX = 0, prevMouseY = 0;
+
+function initThreeJS() {
+  const container = document.getElementById('three-container');
+  if (!container) return;
+
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0xF8FAFC);
+
+  const w = container.clientWidth || 600;
+  const h = container.clientHeight || 440;
+
+  threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+  threeCamera.position.set(0, 5, 14);
+  threeCamera.lookAt(0, 0, 0);
+
+  threeRenderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('three-canvas') });
+  threeRenderer.setSize(w, h);
+  threeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+  threeRenderer.shadowMap.enabled = true;
+
+  // Đèn chiếu sáng
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  threeScene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(10, 20, 15);
+  dirLight.castShadow = true;
+  threeScene.add(dirLight);
+
+  const fillLight = new THREE.DirectionalLight(0xffedcc, 0.4);
+  fillLight.position.set(-10, -5, -10);
+  threeScene.add(fillLight);
+
+  // Lưới toạ độ mặt sàn
+  const gridHelper = new THREE.GridHelper(16, 16, 0xCBD5E1, 0xE2E8F0);
+  gridHelper.position.y = -3;
+  threeScene.add(gridHelper);
+
+  update3DGeometry();
+
+  // Tương tác chuột xoay mô hình
+  const canvas = document.getElementById('three-canvas');
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (isDragging && current3DMesh) {
+      const deltaX = e.clientX - prevMouseX;
+      const deltaY = e.clientY - prevMouseY;
+      current3DMesh.rotation.y += deltaX * 0.01;
+      current3DMesh.rotation.x += deltaY * 0.01;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    }
+  });
+
+  // Touch controls cho màn hình cảm ứng di động
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      prevMouseX = e.touches[0].clientX;
+      prevMouseY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  window.addEventListener('touchend', () => { isDragging = false; });
+  canvas.addEventListener('touchmove', e => {
+    if (isDragging && current3DMesh && e.touches.length === 1) {
+      const deltaX = e.touches[0].clientX - prevMouseX;
+      const deltaY = e.touches[0].clientY - prevMouseY;
+      current3DMesh.rotation.y += deltaX * 0.015;
+      current3DMesh.rotation.x += deltaY * 0.015;
+      prevMouseX = e.touches[0].clientX;
+      prevMouseY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  window.addEventListener('resize', onWindowResize);
+  animateThree();
+}
+
+function onWindowResize() {
+  const container = document.getElementById('three-container');
+  if (!container || !threeCamera || !threeRenderer) return;
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  threeCamera.aspect = w / h;
+  threeCamera.updateProjectionMatrix();
+  threeRenderer.setSize(w, h);
+}
+
+function update3DGeometry() {
+  if (!threeScene) return;
+  if (current3DMesh) threeScene.remove(current3DMesh);
+
+  const shape = appState.currentShape;
+  const p = appState.params[shape];
+  let geom, colorHex;
+
+  if (shape === 'cylinder') {
+    geom = new THREE.CylinderGeometry(p.r * 0.5, p.r * 0.5, p.h * 0.6, 48);
+    colorHex = 0x16A34A;
+  } else if (shape === 'cone') {
+    geom = new THREE.ConeGeometry(p.r * 0.6, p.h * 0.7, 48);
+    colorHex = 0xEA580C;
+  } else if (shape === 'sphere') {
+    geom = new THREE.SphereGeometry(p.r * 0.6, 48, 48);
+    colorHex = 0x0284C7;
+  }
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: colorHex,
+    roughness: 0.25,
+    metalness: 0.15,
+    wireframe: isWireframe,
+    transparent: true,
+    opacity: 0.92
+  });
+
+  current3DMesh = new THREE.Mesh(geom, mat);
+  current3DMesh.castShadow = true;
+  current3DMesh.position.set(0, 0, 0);
+
+  // Thêm viền cạnh để nhìn khối sắc nét
+  const edges = new THREE.EdgesGeometry(geom);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1, transparent: true, opacity: 0.25 }));
+  current3DMesh.add(line);
+
+  threeScene.add(current3DMesh);
+}
+
+function animateThree() {
+  requestAnimationFrame(animateThree);
+  if (current3DMesh && !isDragging) {
+    current3DMesh.rotation.y += 0.003;
+  }
+  if (threeRenderer && threeScene && threeCamera) {
+    threeRenderer.render(threeScene, threeCamera);
+  }
+}
+
+function reset3DView() {
+  if (current3DMesh) {
+    current3DMesh.rotation.set(0, 0, 0);
+  }
+  if (threeCamera) {
+    threeCamera.position.set(0, 5, 14);
+    threeCamera.lookAt(0, 0, 0);
+  }
+}
+
+function toggleWireframe() {
+  isWireframe = !isWireframe;
+  if (current3DMesh && current3DMesh.material) {
+    current3DMesh.material.wireframe = isWireframe;
+  }
+  showToast(isWireframe ? 'Bật chế độ khung dây (Wireframe)' : 'Tắt chế độ khung dây', 'info');
+}
+
+/**
+ * 8. Hiển thị Video bài giảng lý thuyết chính thức
+ */
+function renderAssignedLessonVideo() {
+  const shape = appState.currentShape;
+  const video = appState.assignedVideos[shape] || appState.videos.find(v => v.assignedShape === shape || v.shape === shape);
+
+  const titleEl = document.getElementById('lesson-video-title');
+  const descEl = document.getElementById('lesson-video-desc');
+  const iframeEl = document.getElementById('lesson-video-iframe');
+  const emptyEl = document.getElementById('lesson-video-empty');
+
+  if (video && (video.embedUrl || video.fileId)) {
+    if (titleEl) titleEl.textContent = video.title;
+    if (descEl) descEl.textContent = video.description || 'Bài giảng lý thuyết chuẩn SGK Toán 9.';
+    if (iframeEl) {
+      iframeEl.src = video.embedUrl || `https://drive.google.com/file/d/${video.fileId}/preview`;
+      iframeEl.style.display = 'block';
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+  } else {
+    if (titleEl) titleEl.textContent = `Chưa có video bài giảng gán cho ${shape.toUpperCase()}`;
+    if (descEl) descEl.textContent = 'Giáo viên có thể tải video lên Google Drive và gán làm bài giảng chính thức.';
+    if (iframeEl) iframeEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+  }
+}
+
+/**
+ * 9. Hiển thị Ngân hàng Video trên Google Drive
+ */
+function renderVideoBank() {
+  const container = document.getElementById('video-bank-grid');
+  if (!container) return;
+
+  const videos = appState.videos;
+  if (!videos || videos.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align:center; padding:50px 20px; background:#fff; border-radius:16px; border:1px dashed #CBD5E1;">
+        <div style="font-size:36px; margin-bottom:8px;">🎬</div>
+        <h4 style="font-size:15px; font-weight:800; color:#0F172A;">Chưa có video nào trên Google Drive</h4>
+        <p style="font-size:12px; color:#64748B; margin-top:4px;">Nhấn nút "Tải lên Video Mới" để tải video bài giảng vào kho lưu trữ.</p>
+        <button class="btn btn-primary" onclick="openUploadModal()" style="margin-top:16px;">Tải Lên Video Ngay</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = videos.map(vid => {
+    const isAssigned = !!vid.assignedShape;
+    const badgeText = isAssigned ? `ĐÃ GÁN: ${vid.assignedShape.toUpperCase()}` : (vid.shape ? vid.shape.toUpperCase() : 'CHUNG');
+    const badgeColor = isAssigned ? '#15803D' : '#475569';
+    const badgeBg = isAssigned ? '#DCFCE7' : '#F1F5F9';
+
+    return `
+      <div class="video-card">
+        <div class="video-thumb-holder" onclick="openVideoPlayer('${vid.id}', '${vid.embedUrl}', '${encodeURIComponent(vid.title)}', '${vid.shape}', '${encodeURIComponent(vid.description || '')}', '${vid.driveUrl}')">
+          <div class="video-shape-chip" style="background:${badgeBg}; color:${badgeColor}; font-weight:800;">
+            ${badgeText}
+          </div>
+          <div class="play-overlay-icon">▶</div>
+        </div>
+        <div class="video-card-body">
+          <div>
+            <h4 class="video-title">${escapeHtml(vid.title)}</h4>
+            <p class="video-desc">${escapeHtml(vid.description || 'Video bài giảng thực nghiệm Toán 9.')}</p>
+          </div>
+          <div>
+            <div class="video-meta-bar">
+              <span>${vid.author || 'ThS. Trần Ngọc Hiếu'}</span>
+              <span>${formatBytesClient(vid.size)}</span>
+            </div>
+            <div class="video-actions-row">
+              <button class="btn btn-outline" style="flex:1;" onclick="openVideoPlayer('${vid.id}', '${vid.embedUrl}', '${encodeURIComponent(vid.title)}', '${vid.shape}', '${encodeURIComponent(vid.description || '')}', '${vid.driveUrl}')">
+                <span>▶ Xem</span>
+              </button>
+              ${!isAssigned ? `
+                <button class="btn btn-outline" title="Gán làm bài giảng chính thức" onclick="quickAssignVideo('${vid.shape || 'cylinder'}', '${vid.id}')">
+                  <span>📌 Gán</span>
+                </button>
+              ` : ''}
+              ${!String(vid.id).startsWith('SYS-VID-') ? `
+                <button class="btn btn-danger" title="Xoá video khỏi Drive" onclick="confirmDeleteVideo('${vid.id}', '${encodeURIComponent(vid.title)}')">
+                  <span>🗑️</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * 10. Hiển thị thông tin dung lượng Google Drive
+ */
+function renderStorageOverview() {
+  const info = appState.storageInfo;
+  if (!info) return;
+
+  const countEl = document.getElementById('stat-video-count');
+  const sizeEl = document.getElementById('stat-storage-size');
+  const folderLinkEl = document.getElementById('link-drive-folder');
+  const sheetLinkEl = document.getElementById('link-database-sheet');
+
+  if (countEl) countEl.textContent = info.fileCount || appState.videos.length;
+  if (sizeEl) sizeEl.textContent = info.totalStorageUsed || '0 MB';
+  if (folderLinkEl && info.folderUrl) folderLinkEl.href = info.folderUrl;
+  if (sheetLinkEl && info.spreadsheetUrl) sheetLinkEl.href = info.spreadsheetUrl;
+}
+
+/**
+ * 11. Xử lý tải lên Video (Upload to Google Drive)
+ */
+function openUploadModal() {
+  document.getElementById('modal-upload-video').classList.add('active');
+  clearSelectedFile();
+  const shapeSelect = document.getElementById('upload-video-shape');
+  if (shapeSelect) shapeSelect.value = appState.currentShape;
+}
+
+function closeUploadModal() {
+  document.getElementById('modal-upload-video').classList.remove('active');
+  clearSelectedFile();
+}
+
+function handleFileSelected(input) {
+  if (input.files && input.files.length > 0) {
+    processSelectedFile(input.files[0]);
+  }
+}
+
+function processSelectedFile(file) {
+  // Kiểm tra giới hạn 25MB
+  const maxBytes = 25 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    alert(`Tệp video "${file.name}" dung lượng ${formatBytesClient(file.size)} vượt quá giới hạn 25MB của Google Apps Script.\nVui lòng chọn video dung lượng nhỏ hơn hoặc nén lại trước khi tải lên.`);
+    return;
+  }
+
+  appState.selectedUploadFile = file;
+
+  // Hiển thị thông tin file
+  document.getElementById('selected-file-info').style.display = 'flex';
+  document.getElementById('selected-file-name').textContent = file.name;
+  document.getElementById('selected-file-size').textContent = formatBytesClient(file.size);
+
+  // Tự động điền tiêu đề nếu chưa nhập
+  const titleInput = document.getElementById('upload-video-title');
+  if (titleInput && !titleInput.value) {
+    const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    titleInput.value = 'Bài giảng: ' + rawName;
+  }
+
+  // Đọc file thành DataURL Base64
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    appState.selectedUploadBase64 = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSelectedFile() {
+  appState.selectedUploadFile = null;
+  appState.selectedUploadBase64 = null;
+  const input = document.getElementById('file-video-input');
+  if (input) input.value = '';
+  const infoEl = document.getElementById('selected-file-info');
+  if (infoEl) infoEl.style.display = 'none';
+  const progressBox = document.getElementById('upload-progress-box');
+  if (progressBox) progressBox.style.display = 'none';
+  const submitBtn = document.getElementById('btn-submit-upload');
+  if (submitBtn) submitBtn.disabled = false;
+}
+
+function handleVideoUploadSubmit(e) {
+  e.preventDefault();
+
+  if (!appState.selectedUploadBase64 || !appState.selectedUploadFile) {
+    alert('Vui lòng chọn một tệp video MP4/WebM trước khi bấm tải lên.');
+    return;
+  }
+
+  const title = document.getElementById('upload-video-title').value.trim();
+  const shape = document.getElementById('upload-video-shape').value;
+  const desc = document.getElementById('upload-video-desc').value.trim();
+  const setAsAssigned = document.getElementById('upload-video-assign').checked;
+
+  const payload = {
+    base64Data: appState.selectedUploadBase64,
+    fileName: appState.selectedUploadFile.name,
+    mimeType: appState.selectedUploadFile.type || 'video/mp4',
+    title: title,
+    shape: shape,
+    description: desc,
+    setAsAssigned: setAsAssigned,
+    author: 'ThS. Trần Ngọc Hiếu'
+  };
+
+  // Hiển thị trạng thái đang xử lý
+  const progressBox = document.getElementById('upload-progress-box');
+  const progressBar = document.getElementById('upload-progress-bar');
+  const percentText = document.getElementById('upload-percent-text');
+  const statusText = document.getElementById('upload-status-text');
+  const submitBtn = document.getElementById('btn-submit-upload');
+
+  progressBox.style.display = 'block';
+  progressBar.style.width = '35%';
+  percentText.textContent = '35%';
+  statusText.textContent = 'Đang chuyển dữ liệu video lên Google Drive...';
+  submitBtn.disabled = true;
+
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    progressBar.style.width = '70%';
+    percentText.textContent = '70%';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        progressBar.style.width = '100%';
+        percentText.textContent = '100%';
+
+        if (res && res.success) {
+          showToast(res.message || 'Tải video thành công lên Google Drive!', 'success');
+          closeUploadModal();
+          // Nạp lại danh sách video
+          loadInitialData();
+        } else {
+          alert('Lỗi tải video: ' + (res ? res.message : 'Không xác định'));
+          submitBtn.disabled = false;
+        }
+      })
+      .withFailureHandler(function(err) {
+        console.error('Lỗi upload video:', err);
+        alert('Lỗi máy chủ Google Apps Script: ' + err.message);
+        submitBtn.disabled = false;
+      })
+      .apiUploadVideo(payload);
+  } else {
+    setTimeout(() => {
+      progressBar.style.width = '100%';
+      percentText.textContent = '100%';
+      showToast('Đã giả lập lưu trữ video thành công (chế độ preview local).', 'success');
+      closeUploadModal();
+    }, 1200);
+  }
+}
+
+/**
+ * 12. Xem video trong Modal
+ */
+function openVideoPlayer(id, embedUrl, encodedTitle, shape, encodedDesc, driveUrl) {
+  const modal = document.getElementById('modal-video-player');
+  const iframe = document.getElementById('player-drive-iframe');
+  const titleEl = document.getElementById('player-modal-title');
+  const descEl = document.getElementById('player-modal-desc');
+  const badgeEl = document.getElementById('player-modal-badge');
+  const driveLink = document.getElementById('player-drive-link');
+
+  const title = decodeURIComponent(encodedTitle || 'Video bài giảng');
+  const desc = decodeURIComponent(encodedDesc || '');
+
+  if (titleEl) titleEl.textContent = title;
+  if (descEl) descEl.textContent = desc || 'Video bài học trực quan thuộc chương trình Hình học 9.';
+  if (badgeEl) badgeEl.textContent = shape ? shape.toUpperCase() : 'HÌNH HỌC';
+  if (driveLink && driveUrl) driveLink.href = driveUrl;
+
+  // Thiết lập URL iframe
+  if (iframe) {
+    iframe.src = embedUrl || `https://drive.google.com/file/d/${id}/preview`;
+  }
+
+  modal.classList.add('active');
+}
+
+function closeVideoPlayerModal() {
+  const modal = document.getElementById('modal-video-player');
+  const iframe = document.getElementById('player-drive-iframe');
+  if (iframe) iframe.src = '';
+  modal.classList.remove('active');
+}
+
+/**
+ * 13. Xoá video
+ */
+function confirmDeleteVideo(id, encodedTitle) {
+  const title = decodeURIComponent(encodedTitle);
+  if (!confirm(`Bạn có chắc chắn muốn xoá video "${title}" khỏi hệ thống và đưa tệp trên Google Drive vào Thùng rác?`)) {
+    return;
+  }
+
+  showToast('Đang xoá video...', 'info');
+
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.success) {
+          showToast(res.message, 'success');
+          loadInitialData();
+        } else {
+          showToast(res.message, 'error');
+        }
+      })
+      .withFailureHandler(function(err) {
+        showToast('Lỗi khi xoá: ' + err.message, 'error');
+      })
+      .apiDeleteVideo(id);
+  }
+}
+
+/**
+ * 14. Gán video nhanh làm bài giảng chính thức
+ */
+function quickAssignVideo(shape, videoId) {
+  showToast(`Đang gán video cho ${shape.toUpperCase()}...`, 'info');
+
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.success) {
+          showToast(res.message, 'success');
+          loadInitialData();
+        } else {
+          showToast(res.message, 'error');
+        }
+      })
+      .withFailureHandler(function(err) {
+        showToast('Lỗi khi gán video: ' + err.message, 'error');
+      })
+      .apiAssignVideoToShape(shape, videoId);
+  }
+}
+
+/**
+ * 15. Xem chi tiết bài tập & Lời giải 4 bước
+ */
+function openExerciseDetail(exId) {
+  const ex = appState.exercises.find(e => e.id === exId);
+  if (!ex) return;
+
+  const modal = document.getElementById('modal-exercise-detail');
+  document.getElementById('ex-modal-title').textContent = ex.title;
+  document.getElementById('ex-modal-question').innerHTML = ex.question;
+  document.getElementById('ex-modal-badge').textContent = ex.type;
+  document.getElementById('ex-modal-shape').textContent = ex.shape.toUpperCase();
+
+  const stepsContainer = document.getElementById('ex-modal-steps');
+  stepsContainer.innerHTML = ex.steps.map(step => `
+    <div class="step-item">
+      <div class="step-dot"></div>
+      <div class="step-title">${step.title}</div>
+      <div class="step-content">${step.content}</div>
+    </div>
+  `).join('');
+
+  modal.classList.add('active');
+  renderMath();
+}
+
+function closeExerciseModal() {
+  document.getElementById('modal-exercise-detail').classList.remove('active');
+}
+
+/**
+ * 16. KaTeX Mathematical Formulas Rendering
+ */
+function renderMath() {
+  if (typeof renderMathInElement !== 'undefined') {
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    });
+  }
+}
+
+/**
+ * 17. Toast Notifications
+ */
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> <span>${escapeHtml(msg)}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// Tiện ích phụ
+function formatBytesClient(bytes) {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>

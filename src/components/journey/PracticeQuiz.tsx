@@ -198,6 +198,16 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ shapeType, onComplet
     );
   }
 
+  if (!currentQ || totalQuestions === 0) {
+    return (
+      <div className="bg-[#FFFDF8] border border-[#E5DCCF] rounded-2xl p-8 text-center space-y-3">
+        <p className="text-sm font-semibold text-[#594D46]">
+          Chưa có câu hỏi luyện tập cho chủ đề này.
+        </p>
+      </div>
+    );
+  }
+
   const isCorrect = isSubmitted && currentAnswer === currentQ.correctAnswer;
 
   return (
@@ -214,7 +224,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ shapeType, onComplet
         </div>
 
         <div className="flex items-center gap-1.5">
-          {questions.map((q, idx) => {
+          {(questions ?? []).map((q, idx) => {
             const answered = !!selectedAnswers[q.id];
             const isSub = !!submittedQuestions[q.id];
             const isCurrent = idx === currentIndex;

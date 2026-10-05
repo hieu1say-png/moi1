@@ -48,9 +48,11 @@ export interface ServerTheoryVideo {
   duration?: string;
   thumbnailURL?: string;
   status: "SYSTEM" | "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED" | "PENDING_STORAGE";
+  storageType?: "vercel_blob" | "canonical" | "local";
   createdAt: number;
   updatedAt: number;
   publishedAt?: number | null;
+  idempotencyKey?: string;
 
   // Interoperability & Legacy fields
   topic: "CYLINDER" | "CONE" | "SPHERE";
@@ -309,10 +311,19 @@ export function normalizeVideo(v: any): ServerTheoryVideo {
   };
 }
 
+export interface ServerVideoBankManifest {
+  schemaVersion: "1.0.0";
+  revision: number;
+  updatedAt: string;
+  videos: ServerTheoryVideo[];
+  assignments: ShapeVideoAssignments;
+}
+
 export class PersistentTheoryVideoStorage {
   private static isInitialized = false;
   private static memoryCache: ServerTheoryVideo[] | null = null;
   private static assignmentsCache: ShapeVideoAssignments | null = null;
+  private static localRevision = 1;
 
   public static initialize(): void {
     if (this.isInitialized) return;
@@ -356,11 +367,37 @@ export class PersistentTheoryVideoStorage {
     }
   }
 
-  private static async syncFromBlob(): Promise<void> {
+  public static async syncFromBlob(): Promise<void> {
     if (!process.env.BLOB_READ_WRITE_TOKEN) return;
     try {
       const { list } = await import("@vercel/blob");
       const { blobs } = await list({ prefix: "metadata/" });
+
+      // First check unified master manifest: metadata/video-bank.json
+      const manifestBlob = blobs.find((b) => b.pathname === "metadata/video-bank.json");
+      if (manifestBlob) {
+        const res = await fetch(manifestBlob.url);
+        if (res.ok) {
+          const remoteManifest: ServerVideoBankManifest = await res.json();
+          if (remoteManifest && Array.isArray(remoteManifest.videos) && remoteManifest.revision >= this.localRevision) {
+            this.localRevision = remoteManifest.revision;
+            this.memoryCache = remoteManifest.videos.map((v: any) => normalizeVideo(v));
+            if (remoteManifest.assignments) {
+              this.assignmentsCache = remoteManifest.assignments;
+              try {
+                fs.writeFileSync(ASSIGNMENTS_FILE, JSON.stringify(remoteManifest.assignments, null, 2), "utf8");
+              } catch {}
+            }
+            try {
+              fs.writeFileSync(JSON_DB_FILE, JSON.stringify(this.memoryCache, null, 2), "utf8");
+            } catch {}
+            console.log(`[STORAGE] Synced master manifest revision ${remoteManifest.revision} (${remoteManifest.videos.length} videos) from Vercel Blob store.`);
+            return;
+          }
+        }
+      }
+
+      // Fallback check individual metadata blobs
       const videoBlob = blobs.find((b) => b.pathname === "metadata/theory_videos.json");
       if (videoBlob) {
         const res = await fetch(videoBlob.url);
@@ -393,8 +430,8 @@ export class PersistentTheoryVideoStorage {
     }
   }
 
-  private static async syncToBlob(pathname: string, data: any): Promise<void> {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  public static async syncToBlob(pathname: string, data: any): Promise<boolean> {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return false;
     try {
       const { put } = await import("@vercel/blob");
       await put(pathname, JSON.stringify(data, null, 2), {
@@ -402,8 +439,10 @@ export class PersistentTheoryVideoStorage {
         addRandomSuffix: false
       });
       console.log(`[STORAGE] Persisted ${pathname} to Vercel Blob.`);
+      return true;
     } catch (err) {
       console.warn(`[STORAGE] Notice persisting ${pathname} to Vercel Blob:`, err);
+      return false;
     }
   }
 
@@ -445,21 +484,71 @@ export class PersistentTheoryVideoStorage {
   }
 
   /**
-   * Save all videos to persistent disk file atomically and update in-memory cache
+   * Save all videos to persistent disk file atomically and sync to Vercel Blob manifest
    */
   public static saveAllVideos(videos: ServerTheoryVideo[]): boolean {
     this.initialize();
+    this.localRevision++;
     this.memoryCache = [...videos];
-    this.syncToBlob("metadata/theory_videos.json", videos).catch(() => {});
+
+    // Atomically persist to disk
     try {
       const tempPath = `${JSON_DB_FILE}.tmp.${Date.now()}`;
       fs.writeFileSync(tempPath, JSON.stringify(videos, null, 2), "utf8");
       fs.renameSync(tempPath, JSON_DB_FILE);
-      return true;
     } catch (err) {
       console.warn("[STORAGE] Disk write notice (retaining in-memory cache):", err);
-      return true;
     }
+
+    // Persist unified master manifest to Vercel Blob
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const manifest: ServerVideoBankManifest = {
+        schemaVersion: "1.0.0",
+        revision: this.localRevision,
+        updatedAt: new Date().toISOString(),
+        videos,
+        assignments: this.getAssignments()
+      };
+      this.syncToBlob("metadata/video-bank.json", manifest).catch(() => {});
+      this.syncToBlob("metadata/theory_videos.json", videos).catch(() => {});
+    }
+
+    return true;
+  }
+
+  /**
+   * Async variant that awaits both disk and blob manifest synchronization
+   */
+  public static async saveAllVideosAsync(videos: ServerTheoryVideo[]): Promise<boolean> {
+    this.initialize();
+    this.localRevision++;
+    this.memoryCache = [...videos];
+
+    let diskOk = false;
+    try {
+      const tempPath = `${JSON_DB_FILE}.tmp.${Date.now()}`;
+      fs.writeFileSync(tempPath, JSON.stringify(videos, null, 2), "utf8");
+      fs.renameSync(tempPath, JSON_DB_FILE);
+      diskOk = true;
+    } catch (err) {
+      console.warn("[STORAGE] Disk write notice during async save:", err);
+    }
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const manifest: ServerVideoBankManifest = {
+        schemaVersion: "1.0.0",
+        revision: this.localRevision,
+        updatedAt: new Date().toISOString(),
+        videos,
+        assignments: this.getAssignments()
+      };
+      await Promise.allSettled([
+        this.syncToBlob("metadata/video-bank.json", manifest),
+        this.syncToBlob("metadata/theory_videos.json", videos)
+      ]);
+    }
+
+    return diskOk || this.memoryCache.length > 0;
   }
 
   /**
@@ -471,12 +560,26 @@ export class PersistentTheoryVideoStorage {
   }
 
   /**
-   * Create and persist a new video
+   * Create and persist a new video with idempotency support and collision-proof IDs
    */
   public static createVideo(
-    data: Omit<ServerTheoryVideo, "id" | "viewCount" | "createdAt" | "updatedAt"> & { id?: string }
+    data: Omit<ServerTheoryVideo, "id" | "viewCount" | "createdAt" | "updatedAt"> & {
+      id?: string;
+      idempotencyKey?: string;
+    }
   ): ServerTheoryVideo {
     const list = this.getAllVideos();
+
+    // IDEMPOTENCY GUARD:
+    // If client supplied an idempotencyKey that already exists, return the existing video to prevent duplicates
+    if (data.idempotencyKey) {
+      const existing = list.find((v) => v.idempotencyKey === data.idempotencyKey);
+      if (existing) {
+        console.log(`[STORAGE] Idempotency match found for key "${data.idempotencyKey}". Returning existing video ${existing.id}.`);
+        return existing;
+      }
+    }
+
     const topic = data.topic || "CYLINDER";
     // Master Video Bank Rule: New uploaded videos start as DRAFT until reviewed & published
     const status = data.status || "DRAFT";
@@ -489,9 +592,14 @@ export class PersistentTheoryVideoStorage {
       throw new Error("Không thể xuất bản video khi chưa có đường dẫn videoUrl hợp lệ.");
     }
 
+    // High-entropy collision-proof unique ID
+    const randomSuffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const uniqueId = data.id || `VIDEO-${topic}-${Date.now()}-${randomSuffix}`;
+
     const newVideo: ServerTheoryVideo = {
       ...data,
-      id: data.id || `VIDEO-${topic}-${Date.now().toString().slice(-4)}`,
+      id: uniqueId,
+      idempotencyKey: data.idempotencyKey,
       topic,
       shape: (data.shape || topic.toLowerCase()) as "cylinder" | "cone" | "sphere",
       section: data.section || "THEORY",
@@ -501,6 +609,7 @@ export class PersistentTheoryVideoStorage {
       downloadURL: effectiveUrl,
       type: "TEACHER",
       ownerId: effectiveCreatedBy,
+      storageType: data.storageType || (effectiveUrl.includes("vercel-storage.com") ? "vercel_blob" : effectiveUrl.startsWith("/videos/") ? "canonical" : "vercel_blob"),
       thumbnailUrl: effectiveThumb,
       thumbnail: effectiveThumb,
       storagePath: data.storagePath || (effectiveUrl.startsWith("/uploads/") ? effectiveUrl.replace(/^\//, "") : ""),
@@ -533,14 +642,20 @@ export class PersistentTheoryVideoStorage {
           console.log(`[STORAGE] Archived previous video ${existing.id} for ${newVideo.topic} - ${newVideo.section} (One Video Per Content Rule)`);
         }
       }
-      // If THEORY section, automatically update assignment for this shape
-      if (newVideo.section === "THEORY") {
-        this.assignVideoToShape(newVideo.shape, newVideo.id);
-      }
     }
 
     list.push(newVideo);
     this.saveAllVideos(list);
+
+    // If published and in THEORY section, automatically update assignment for this shape
+    if (newVideo.status === "PUBLISHED" && newVideo.section === "THEORY") {
+      try {
+        this.assignVideoToShape(newVideo.shape, newVideo.id);
+      } catch (assignErr) {
+        console.warn("[STORAGE] Notice assigning new video to shape:", assignErr);
+      }
+    }
+
     console.log(`[STORAGE] Created persistent theory video: ${newVideo.id} - "${newVideo.title}"`);
     return newVideo;
   }
@@ -740,13 +855,44 @@ export class PersistentTheoryVideoStorage {
   }
 
   /**
-   * Set video assignment for a specific shape
+   * Set video assignment for a specific shape with validation and auto-publishing
    */
   public static assignVideoToShape(
     shape: "cylinder" | "cone" | "sphere",
     videoId: string | null
   ): ShapeVideoAssignments {
+    const list = this.getAllVideos();
     const current = this.getAssignments();
+
+    if (videoId) {
+      const targetVideo = list.find((v) => v.id === videoId);
+      if (!targetVideo) {
+        throw new Error(`Video với mã "${videoId}" không tồn tại trong ngân hàng.`);
+      }
+
+      // Ensure video is PUBLISHED when assigned to active lesson
+      if (targetVideo.status !== "PUBLISHED") {
+        targetVideo.status = "PUBLISHED";
+        targetVideo.publishedAt = targetVideo.publishedAt || Date.now();
+        targetVideo.updatedAt = Date.now();
+      }
+
+      // One Video Per Content Rule: Archive previous published video for this shape and section
+      for (const existing of list) {
+        if (
+          existing.id !== videoId &&
+          (existing.shape === shape || existing.topic?.toLowerCase() === shape) &&
+          existing.section === targetVideo.section &&
+          existing.status === "PUBLISHED"
+        ) {
+          existing.status = "ARCHIVED";
+          existing.updatedAt = Date.now();
+          console.log(`[STORAGE] Archived previous video ${existing.id} for ${shape} - ${existing.section} on assignment.`);
+        }
+      }
+      this.saveAllVideos(list);
+    }
+
     current[shape] = videoId;
     try {
       fs.writeFileSync(ASSIGNMENTS_FILE, JSON.stringify(current, null, 2), "utf8");
